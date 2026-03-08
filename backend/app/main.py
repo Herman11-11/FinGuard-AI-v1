@@ -1,15 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
 
-# Create the FastAPI app
-app = FastAPI(
-    title="FinGuard-AI",
-    description="Digital fingerprint system for Tanzania land documents",
-    version="1.0.0"
-)
+# Import our hashing service
+from hashing import HashingService
 
-# Allow frontend to connect (we'll add this later)
+app = FastAPI(title="FinGuard-AI", version="1.0.0")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -17,20 +17,33 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Simple home page
 @app.get("/")
 def home():
-    return {
-        "message": "Welcome to FinGuard-AI",
-        "status": "running",
-        "for": "Ministry of Lands, Tanzania 🇹🇿"
-    }
+    return {"message": "FinGuard-AI is running 🇹🇿"}
 
-# Test endpoint to check if API works
 @app.get("/health")
 def health():
     return {"status": "healthy"}
 
-# Run the server
+# NEW: Generate fingerprint from document data
+@app.get("/fingerprint")
+def create_fingerprint(owner: str, plot: str, location: str, area: int):
+    # Create document data from URL parameters
+    doc_data = {
+        "owner": owner,
+        "plot_number": plot,
+        "location": location,
+        "area": area
+    }
+    
+    # Generate fingerprint
+    fingerprint = HashingService.generate_fingerprint(doc_data)
+    
+    return {
+        "document": doc_data,
+        "fingerprint": fingerprint,
+        "length": len(fingerprint)
+    }
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
