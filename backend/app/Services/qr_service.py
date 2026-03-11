@@ -123,12 +123,6 @@ class QRService:
             img = Image.open(io.BytesIO(image_data))
             
             # Use pyzbar to decode (would need installation)
-            # For demo, return mock data
-            return {
-                "record_id": "LAND-ABC123",
-                "owner": "Herman John",
-                "plot": "PLT-001",
-                "authentic": True
-            }
+            raise NotImplementedError("QR decoding not configured")
         except Exception as e:
             return {"error": str(e)}

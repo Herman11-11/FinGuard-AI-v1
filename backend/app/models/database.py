@@ -39,6 +39,15 @@ class AccessLog(Base):
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.now)
 
+class Officer(Base):
+    __tablename__ = "officers"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    role = Column(String, nullable=True)
+    password_hash = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+
 # Create tables
 Base.metadata.create_all(bind=engine)
 

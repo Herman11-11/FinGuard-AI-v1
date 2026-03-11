@@ -1,20 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Shield, Fingerprint, Users, CheckCircle, XCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import axios from 'axios';
 
 const ThreePersonAuth = ({ language }) => {
   const [step, setStep] = useState(1); // 1: request, 2: approvals, 3: access
   const [documentId, setDocumentId] = useState('');
   const [reason, setReason] = useState('');
-  const [officers, setOfficers] = useState([
-    { id: 1, name: 'Officer Sarah', password: '', approved: false },
-    { id: 2, name: 'Officer Michael', password: '', approved: false },
-    { id: 3, name: 'Supervisor David', password: '', approved: false }
-  ]);
+  const [officers, setOfficers] = useState([]);
   const [showPassword, setShowPassword] = useState({});
   const [requestId, setRequestId] = useState('');
   const [accessCode, setAccessCode] = useState('');
   const [fingerprint, setFingerprint] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const translations = {
     en: {
@@ -71,23 +69,49 @@ const ThreePersonAuth = ({ language }) => {
 
   const t = translations[language];
 
-  const handleOfficerApproval = (officerId, password) => {
-    // In production, verify against actual officer passwords
-    // For demo, any password works
-    
-    setOfficers(officers.map(officer => 
-      officer.id === officerId 
-        ? { ...officer, approved: true, password: '••••••' }
-        : officer
-    ));
+  useEffect(() => {
+    const fetchOfficers = async () => {
+      try {
+        const response = await axios.get('http://localhost:8000/api/auth/officers');
+        const apiOfficers = Array.isArray(response.data) ? response.data : [];
+        setOfficers(apiOfficers.map((o) => ({ ...o, approved: false, password: '' })));
+      } catch (err) {
+        setOfficers([]);
+      }
+    };
 
-    // Check if all 3 approved
-    const allApproved = officers.every(o => o.id === officerId ? true : o.approved);
-    if (allApproved) {
-      // Generate access code and fingerprint
-      setAccessCode('ACC-' + Math.random().toString(36).substring(2, 10).toUpperCase());
-      setFingerprint('5e884898da28047151d0e56f8dc6292773603d0d6aabbdd62a11ef721d1542d8');
-      setStep(3);
+    fetchOfficers();
+  }, []);
+
+  const handleOfficerApproval = async (officerId) => {
+    const officer = officers.find((o) => o.id === officerId);
+    if (!officer || !officer.password) return;
+
+    setLoading(true);
+    setError('');
+    try {
+      const response = await axios.post('http://localhost:8000/api/auth/approve', {
+        request_id: requestId,
+        officer_id: officerId,
+        password: officer.password
+      });
+
+      const approvedIds = response.data?.approved_officers || [];
+      setOfficers(officers.map((o) => ({
+        ...o,
+        approved: approvedIds.includes(o.id),
+        password: o.password ? '••••••' : o.password
+      })));
+
+      if (response.data?.access_code && response.data?.fingerprint) {
+        setAccessCode(response.data.access_code);
+        setFingerprint(response.data.fingerprint);
+        setStep(3);
+      }
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Approval failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -104,10 +128,10 @@ const ThreePersonAuth = ({ language }) => {
       <div className="mb-8">
         <div className="flex items-center space-x-3 mb-2">
           <Shield className="h-8 w-8 text-green-600" />
-          <h2 className="text-3xl font-bold text-gray-800">{t.title}</h2>
+          <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.title}</h2>
         </div>
         <p className="text-gray-500">{t.subtitle}</p>
-        <div className="mt-2 p-2 bg-yellow-50 text-yellow-700 rounded-lg text-sm flex items-center space-x-2">
+        <div className="mt-3 p-2 bg-yellow-50 text-yellow-700 rounded-xl text-sm flex items-center space-x-2 border border-yellow-200/70">
           <AlertTriangle className="h-4 w-4" />
           <span>{t.securityAlert}</span>
         </div>
@@ -115,7 +139,7 @@ const ThreePersonAuth = ({ language }) => {
 
       {/* Step 1: Request Access */}
       {step === 1 && (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           <h3 className="text-xl font-semibold mb-6">Request Document Access</h3>
           
           <div className="space-y-6">
@@ -127,7 +151,7 @@ const ThreePersonAuth = ({ language }) => {
                 type="text"
                 value={documentId}
                 onChange={(e) => setDocumentId(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                 placeholder="e.g., PLT-001 or LAND-ABC123"
               />
             </div>
@@ -139,7 +163,7 @@ const ThreePersonAuth = ({ language }) => {
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
               >
                 <option value="">{t.selectReason}</option>
                 <option value="court">{t.courtCase}</option>
@@ -153,20 +177,38 @@ const ThreePersonAuth = ({ language }) => {
               <input
                 type="text"
                 placeholder="Specify reason..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg"
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg bg-white/80"
               />
             )}
 
             <button
-              onClick={() => {
-                setStep(2);
-                setRequestId('REQ-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+              onClick={async () => {
+                setLoading(true);
+                setError('');
+                try {
+                  const response = await axios.post('http://localhost:8000/api/auth/request', {
+                    document_id: documentId,
+                    reason
+                  });
+                  setRequestId(response.data?.request_id || '');
+                  if (Array.isArray(response.data?.officers)) {
+                    setOfficers(response.data.officers.map((o) => ({ ...o, approved: false, password: '' })));
+                  }
+                  setStep(2);
+                } catch (err) {
+                  setError(err?.response?.data?.detail || 'Request failed');
+                } finally {
+                  setLoading(false);
+                }
               }}
               disabled={!documentId || !reason}
-              className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full btn-primary px-6 py-3 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {t.requestAccess}
             </button>
+            {error && (
+              <div className="mt-3 text-sm text-red-600">{error}</div>
+            )}
           </div>
         </div>
       )}
@@ -175,7 +217,7 @@ const ThreePersonAuth = ({ language }) => {
       {step === 2 && (
         <div className="space-y-6">
           {/* Request Info */}
-          <div className="bg-blue-50 p-4 rounded-lg">
+          <div className="card-soft p-4">
             <p className="text-sm text-blue-700">
               Request ID: <span className="font-mono font-bold">{requestId}</span>
             </p>
@@ -185,7 +227,7 @@ const ThreePersonAuth = ({ language }) => {
           </div>
 
           {/* Approvals Needed */}
-          <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+          <div className="card p-8">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-semibold">{t.approvalsNeeded}</h3>
               <div className="flex items-center space-x-2">
@@ -210,6 +252,9 @@ const ThreePersonAuth = ({ language }) => {
 
             {/* Officers List */}
             <div className="space-y-4">
+              {officers.length === 0 && (
+                <div className="text-sm text-gray-500">No officers available</div>
+              )}
               {officers.map((officer) => (
                 <div
                   key={officer.id}
@@ -240,12 +285,12 @@ const ThreePersonAuth = ({ language }) => {
                         <input
                           type={showPassword[officer.id] ? 'text' : 'password'}
                           placeholder={t.enterPassword}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg pr-10 bg-white/80"
                           onChange={(e) => {
                             const newPassword = e.target.value;
-                            if (newPassword.length >= 3) {
-                              handleOfficerApproval(officer.id, newPassword);
-                            }
+                            setOfficers(officers.map((o) => (
+                              o.id === officer.id ? { ...o, password: newPassword } : o
+                            )));
                           }}
                         />
                         <button
@@ -260,7 +305,9 @@ const ThreePersonAuth = ({ language }) => {
                         </button>
                       </div>
                       <button
-                        className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                        onClick={() => handleOfficerApproval(officer.id)}
+                        disabled={loading}
+                        className="px-4 py-2 btn-primary disabled:opacity-60"
                       >
                         {t.approve}
                       </button>
@@ -269,13 +316,16 @@ const ThreePersonAuth = ({ language }) => {
                 </div>
               ))}
             </div>
+            {error && (
+              <div className="mt-4 text-sm text-red-600">{error}</div>
+            )}
           </div>
         </div>
       )}
 
       {/* Step 3: Access Granted */}
       {step === 3 && (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
               <CheckCircle className="h-8 w-8 text-green-600" />
@@ -284,15 +334,15 @@ const ThreePersonAuth = ({ language }) => {
             <p className="text-gray-500 mt-2">3-person authentication complete</p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <div className="card-soft p-6 mb-6">
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500">{t.accessCode}</p>
                 <div className="flex items-center space-x-2">
-                  <code className="flex-1 font-mono text-lg bg-white p-3 rounded border">
+                  <code className="flex-1 font-mono text-lg bg-white p-3 rounded border divider-soft">
                     {accessCode}
                   </code>
-                  <button className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+                  <button className="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm shadow-sm">
                     {t.copyCode}
                   </button>
                 </div>
@@ -301,12 +351,12 @@ const ThreePersonAuth = ({ language }) => {
 
               <div>
                 <p className="text-sm text-gray-500">{t.fingerprint}</p>
-                <div className="font-mono text-xs bg-white p-3 rounded border break-all">
+                <div className="font-mono text-xs bg-white p-3 rounded border divider-soft break-all">
                   {fingerprint}
                 </div>
               </div>
 
-              <div className="bg-yellow-50 p-3 rounded-lg">
+              <div className="bg-yellow-50 p-3 rounded-lg border border-yellow-200/70">
                 <p className="text-xs text-yellow-700">
                   Document: {documentId} | Request: {requestId}
                 </p>
@@ -321,7 +371,7 @@ const ThreePersonAuth = ({ language }) => {
               setReason('');
               setOfficers(officers.map(o => ({ ...o, approved: false, password: '' })));
             }}
-            className="w-full bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors"
+            className="w-full btn-primary px-6 py-3 transition-colors"
           >
             {t.newRequest}
           </button>

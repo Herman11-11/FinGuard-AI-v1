@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FileText, CheckCircle, AlertTriangle, Users, Clock, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, CheckCircle, AlertTriangle, Users, Clock } from 'lucide-react';
 import axios from 'axios';
 
 const Dashboard = ({ language }) => {
@@ -50,6 +50,7 @@ const Dashboard = ({ language }) => {
       viewAll: 'View All',
       stats: 'System Statistics',
       fromYesterday: 'from yesterday',
+      noActivity: 'No recent activity yet',
       loading: 'Loading...'
     },
     sw: {
@@ -65,65 +66,43 @@ const Dashboard = ({ language }) => {
       viewAll: 'Angalia Zote',
       stats: 'Takwimu za Mfumo',
       fromYesterday: 'kutoka jana',
+      noActivity: 'Hakuna shughuli mpya',
       loading: 'Inapakia...'
     }
   };
 
   const t = translations[language];
 
+  const formatValue = (value, fallback = '—') => {
+    if (value === null || value === undefined) return fallback;
+    if (typeof value === 'number') return value.toLocaleString();
+    return value;
+  };
+
   const statCards = [
     { 
       icon: FileText, 
       label: t.totalDocs, 
-      value: stats.totalDocuments.toLocaleString(), 
-      color: 'bg-blue-500',
-      change: '+12%',
-      trend: 'up'
+      value: formatValue(stats.totalDocuments), 
+      color: 'bg-blue-500'
     },
     { 
       icon: CheckCircle, 
       label: t.verified, 
-      value: stats.verifiedToday.toString(), 
-      color: 'bg-green-500',
-      change: '+8%',
-      trend: 'up'
+      value: formatValue(stats.verifiedToday), 
+      color: 'bg-green-500'
     },
     { 
       icon: Users, 
       label: t.pending, 
-      value: stats.pendingAuth.toString(), 
-      color: 'bg-yellow-500',
-      change: '-3%',
-      trend: 'down'
+      value: formatValue(stats.pendingAuth), 
+      color: 'bg-yellow-500'
     },
     { 
       icon: AlertTriangle, 
       label: t.fraudulent, 
-      value: stats.fraudulentDetected.toString(), 
-      color: 'bg-red-500',
-      change: '+1',
-      trend: 'up'
-    },
-  ];
-
-  const activities = [
-    { 
-      time: '10:30 AM', 
-      action: language === 'en' ? 'Document PLT-001 verified' : 'Hati PLT-001 imethibitishwa',
-      user: language === 'en' ? 'Officer John' : 'Afisa John', 
-      status: 'success' 
-    },
-    { 
-      time: '10:15 AM', 
-      action: language === 'en' ? '3-person auth completed' : 'Uthibitisho wa watu 3 umekamilika',
-      user: language === 'en' ? 'Sarah, Mike, David' : 'Sarah, Mike, David', 
-      status: 'auth' 
-    },
-    { 
-      time: '09:45 AM', 
-      action: language === 'en' ? 'Forged document detected' : 'Hati bandia imegunduliwa',
-      user: language === 'en' ? 'System Alert' : 'Arifa ya Mfumo', 
-      status: 'warning' 
+      value: formatValue(stats.fraudulentDetected), 
+      color: 'bg-red-500'
     },
   ];
 
@@ -137,16 +116,38 @@ const Dashboard = ({ language }) => {
 
   return (
     <div className="space-y-6">
+      {/* Premium Government Band */}
+      <div className="premium-band p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div>
+            <p className="text-xs uppercase tracking-widest text-gray-500">United Republic of Tanzania</p>
+            <h3 className="text-2xl font-semibold text-gray-900 font-display mt-1">
+              National Digital Land Registry
+            </h3>
+            <div className="gold-rule w-40 mt-3"></div>
+            <p className="text-sm text-gray-600 mt-3">
+              Official recordkeeping and verification for land ownership and title deeds.
+            </p>
+          </div>
+          <div className="card-soft p-4 min-w-[240px]">
+            <p className="text-xs text-gray-500">Registry Seal</p>
+            <p className="text-sm font-medium text-gray-800 mt-2">Authenticated by Ministry Systems</p>
+            <p className="text-xs text-gray-500 mt-1">Secure Ledger ID</p>
+            <p className="text-sm font-mono text-gray-700">TZ-LAND-REG-01</p>
+          </div>
+        </div>
+      </div>
+
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-start gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-gray-800">{t.welcome}</h2>
+          <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.welcome}</h2>
           <p className="text-gray-500 mt-1 flex items-center">
             <Clock className="h-4 w-4 mr-1" />
             {t.lastLogin}
           </p>
         </div>
-        <div className="bg-green-100 text-green-700 px-4 py-2 rounded-full text-sm font-medium flex items-center">
+        <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium flex items-center border border-emerald-200/70 shadow-sm">
           <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
           {t.systemStatus}: {t.allSystemsOperational}
         </div>
@@ -157,23 +158,13 @@ const Dashboard = ({ language }) => {
         {statCards.map((stat, index) => {
           const Icon = stat.icon;
           return (
-            <div key={index} className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition-all">
+            <div key={index} className="card p-6 hover:shadow-lg transition-all">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">{stat.label}</p>
                   <p className="text-3xl font-bold mt-2">{stat.value}</p>
-                  <div className="flex items-center mt-2">
-                    {stat.trend === 'up' ? (
-                      <ArrowUp className="h-3 w-3 text-green-500 mr-1" />
-                    ) : (
-                      <ArrowDown className="h-3 w-3 text-red-500 mr-1" />
-                    )}
-                    <span className={`text-xs ${stat.trend === 'up' ? 'text-green-600' : 'text-red-600'}`}>
-                      {stat.change} {t.fromYesterday}
-                    </span>
-                  </div>
                 </div>
-                <div className={`p-3 rounded-lg ${stat.color} shadow-lg`}>
+                <div className={`p-3 rounded-xl ${stat.color} shadow-lg`}>
                   <Icon className="h-6 w-6 text-white" />
                 </div>
               </div>
@@ -183,7 +174,7 @@ const Dashboard = ({ language }) => {
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+      <div className="card p-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold text-gray-800">{t.recentActivity}</h3>
           <button className="text-sm text-green-600 hover:text-green-700 font-medium transition-colors">
@@ -191,49 +182,85 @@ const Dashboard = ({ language }) => {
           </button>
         </div>
         <div className="space-y-4">
-          {activities.map((activity, index) => (
-            <div key={index} className="flex items-center justify-between py-3 border-b border-gray-100 last:border-0">
-              <div className="flex items-center space-x-4">
-                <div className={`w-2 h-2 rounded-full ${
-                  activity.status === 'success' ? 'bg-green-500' :
-                  activity.status === 'auth' ? 'bg-blue-500' : 'bg-red-500'
-                }`} />
-                <div>
-                  <p className="text-sm font-medium text-gray-800">{activity.action}</p>
-                  <p className="text-xs text-gray-500">{activity.user}</p>
+          {Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0 ? (
+            stats.recentActivity.map((activity, index) => (
+              <div key={index} className="flex items-center justify-between py-3 border-b divider-soft last:border-0">
+                <div className="flex items-center space-x-4">
+                  <div className="w-2 h-2 rounded-full bg-green-500" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-800">{activity.action}</p>
+                    <p className="text-xs text-gray-500">{activity.user}</p>
+                  </div>
                 </div>
+                <span className="text-xs text-gray-400">{activity.time}</span>
               </div>
-              <span className="text-xs text-gray-400">{activity.time}</span>
-            </div>
-          ))}
+            ))
+          ) : (
+            <div className="text-sm text-gray-500">{t.noActivity}</div>
+          )}
         </div>
       </div>
 
       {/* System Health from Backend */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="card p-6">
           <h4 className="font-medium text-gray-700 mb-3">API Response Time</h4>
-          <p className="text-3xl font-bold text-gray-800">{stats.systemHealth.apiResponse}<span className="text-sm font-normal text-gray-500 ml-1">ms</span></p>
+          <p className="text-3xl font-bold text-gray-800">
+            {formatValue(stats.systemHealth.apiResponse)}
+            {stats.systemHealth.apiResponse !== null && (
+              <span className="text-sm font-normal text-gray-500 ml-1">ms</span>
+            )}
+          </p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${Math.min(100, (200 - stats.systemHealth.apiResponse) / 2)}%` }} />
+            <div
+              className="bg-green-500 h-2 rounded-full"
+              style={{
+                width: stats.systemHealth.apiResponse ? `${Math.min(100, (200 - stats.systemHealth.apiResponse) / 2)}%` : '0%'
+              }}
+            />
           </div>
           <p className="text-xs text-gray-500 mt-2">Faster than 95% of requests</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="card p-6">
           <h4 className="font-medium text-gray-700 mb-3">Database Load</h4>
-          <p className="text-3xl font-bold text-gray-800">{stats.systemHealth.databaseLoad}<span className="text-sm font-normal text-gray-500 ml-1">%</span></p>
+          <p className="text-3xl font-bold text-gray-800">
+            {formatValue(stats.systemHealth.databaseLoad)}
+            {stats.systemHealth.databaseLoad !== null && (
+              <span className="text-sm font-normal text-gray-500 ml-1">%</span>
+            )}
+          </p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-            <div className="bg-green-500 h-2 rounded-full" style={{ width: `${stats.systemHealth.databaseLoad}%` }} />
+            <div
+              className="bg-green-500 h-2 rounded-full"
+              style={{ width: stats.systemHealth.databaseLoad ? `${stats.systemHealth.databaseLoad}%` : '0%' }}
+            />
           </div>
           <p className="text-xs text-gray-500 mt-2">Normal operating range</p>
         </div>
-        <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+        <div className="card p-6">
           <h4 className="font-medium text-gray-700 mb-3">Storage Used</h4>
-          <p className="text-3xl font-bold text-gray-800">{stats.systemHealth.storageUsed}<span className="text-sm font-normal text-gray-500 ml-1">GB</span></p>
+          <p className="text-3xl font-bold text-gray-800">
+            {formatValue(stats.systemHealth.storageUsed)}
+            {stats.systemHealth.storageUsed !== null && (
+              <span className="text-sm font-normal text-gray-500 ml-1">GB</span>
+            )}
+          </p>
           <div className="w-full bg-gray-200 rounded-full h-2 mt-3">
-            <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${(stats.systemHealth.storageUsed / stats.systemHealth.storageTotal) * 100}%` }} />
+            <div
+              className="bg-blue-500 h-2 rounded-full"
+              style={{
+                width:
+                  stats.systemHealth.storageUsed && stats.systemHealth.storageTotal
+                    ? `${(stats.systemHealth.storageUsed / stats.systemHealth.storageTotal) * 100}%`
+                    : '0%'
+              }}
+            />
           </div>
-          <p className="text-xs text-gray-500 mt-2">{stats.systemHealth.storageTotal - stats.systemHealth.storageUsed} GB available</p>
+          <p className="text-xs text-gray-500 mt-2">
+            {stats.systemHealth.storageTotal && stats.systemHealth.storageUsed
+              ? `${stats.systemHealth.storageTotal - stats.systemHealth.storageUsed} GB available`
+              : 'Storage details unavailable'}
+          </p>
         </div>
       </div>
     </div>

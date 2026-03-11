@@ -12,6 +12,7 @@ import uvicorn
 
 from api.stats import router as stats_router
 from api.documents import router as documents_router
+from api.auth import router as auth_router
 
 app = FastAPI(title="FinGuard-AI", version="1.0.0")
 
@@ -24,6 +25,7 @@ app.add_middleware(
 
 app.include_router(stats_router)
 app.include_router(documents_router)
+app.include_router(auth_router)
 
 @app.get("/")
 def home():

@@ -105,63 +105,13 @@ const DocumentVerification = ({ language }) => {
     formData.append('file', file);
 
     try {
-      // In production, this would call your backend verification endpoint
-      // For demo, we'll simulate different responses based on file name
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate processing
-      
-      // Simulate different results
-      const random = Math.random();
-      let verificationResult;
-      
-      if (file.name.includes('fake') || file.name.includes('forged')) {
-        verificationResult = {
-          is_authentic: false,
-          confidence: 0.23,
-          details: {
-            hash_match: false,
-            tamper_detected: true,
-            reason: 'Digital fingerprint mismatch',
-            issue_date: '2024-01-15',
-            owner: 'John Doe',
-            plot: 'PLT-001',
-            location: 'Dar es Salaam'
-          }
-        };
-      } else if (file.name.includes('tampered')) {
-        verificationResult = {
-          is_authentic: false,
-          confidence: 0.45,
-          details: {
-            hash_match: false,
-            tamper_detected: true,
-            reason: 'Document has been altered',
-            issue_date: '2024-01-15',
-            owner: 'Herman John',
-            plot: 'PLT-001',
-            location: 'Dar es Salaam'
-          }
-        };
-      } else {
-        verificationResult = {
-          is_authentic: true,
-          confidence: 0.99,
-          details: {
-            hash_match: true,
-            tamper_detected: false,
-            issue_date: '2024-01-15',
-            owner: 'Herman John',
-            plot: 'PLT-001',
-            location: 'Dar es Salaam',
-            issuer: 'Ministry of Lands',
-            verified_by: 'Officer Sarah',
-            timestamp: new Date().toISOString()
-          }
-        };
-      }
-      
-      setResult(verificationResult);
+      const response = await axios.post('http://localhost:8000/api/documents/verify', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+
+      setResult(response.data);
     } catch (err) {
-      setError('Verification failed');
+      setError(err?.response?.data?.detail || 'Verification failed');
       console.error(err);
     } finally {
       setVerifying(false);
@@ -172,17 +122,17 @@ const DocumentVerification = ({ language }) => {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">{t.title}</h2>
+        <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.title}</h2>
         <p className="text-gray-500 mt-2">{t.subtitle}</p>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-4 mb-6 border-b">
+      <div className="flex space-x-2 mb-6 p-1 bg-white/80 rounded-xl border border-gray-200/70 w-fit">
         <button
           onClick={() => setScanMethod('upload')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors rounded-lg ${
             scanMethod === 'upload'
-              ? 'text-green-600 border-b-2 border-green-600'
+              ? 'text-green-700 bg-green-50'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -191,9 +141,9 @@ const DocumentVerification = ({ language }) => {
         </button>
         <button
           onClick={() => setScanMethod('scan')}
-          className={`px-4 py-2 font-medium transition-colors ${
+          className={`px-4 py-2 font-medium transition-colors rounded-lg ${
             scanMethod === 'scan'
-              ? 'text-green-600 border-b-2 border-green-600'
+              ? 'text-green-700 bg-green-50'
               : 'text-gray-500 hover:text-gray-700'
           }`}
         >
@@ -207,8 +157,8 @@ const DocumentVerification = ({ language }) => {
         {/* Left Column - Upload/Scan */}
         <div className="space-y-6">
           {scanMethod === 'upload' ? (
-            <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors">
+            <div className="card p-8">
+              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60">
                 <input
                   type="file"
                   id="file-upload"
@@ -245,7 +195,7 @@ const DocumentVerification = ({ language }) => {
                 <button
                   onClick={handleVerify}
                   disabled={verifying}
-                  className="w-full mt-6 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  className="w-full mt-6 btn-primary px-6 py-3 transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
                 >
                   {verifying ? (
                     <>
@@ -262,20 +212,20 @@ const DocumentVerification = ({ language }) => {
               )}
             </div>
           ) : (
-            <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+            <div className="card p-8">
               <h3 className="text-lg font-semibold mb-4">{t.scanQR}</h3>
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center">
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200/70">
                 <Scan className="h-16 w-16 text-gray-400" />
               </div>
               <p className="text-sm text-gray-500 mt-4 text-center">{t.placeQR}</p>
-              <button className="w-full mt-4 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700">
+              <button className="w-full mt-4 btn-primary px-6 py-3">
                 {t.startCamera}
               </button>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-100 text-red-700 p-4 rounded-lg flex items-center space-x-2">
+            <div className="bg-red-100 text-red-700 p-4 rounded-xl flex items-center space-x-2 border border-red-200/70">
               <AlertTriangle className="h-5 w-5" />
               <span>{error}</span>
             </div>
@@ -283,11 +233,11 @@ const DocumentVerification = ({ language }) => {
         </div>
 
         {/* Right Column - Results */}
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           {result ? (
             <div className="space-y-6">
               {/* Result Header */}
-              <div className={`text-center p-6 rounded-lg ${
+              <div className={`text-center p-6 rounded-xl ${
                 result.is_authentic ? 'bg-green-100' : 'bg-red-100'
               }`}>
                 {result.is_authentic ? (
@@ -325,30 +275,30 @@ const DocumentVerification = ({ language }) => {
               </div>
 
               {/* Document Details */}
-              <div className="border-t pt-4">
+              <div className="border-t divider-soft pt-4">
                 <h4 className="font-semibold mb-3 flex items-center">
                   <Hash className="h-4 w-4 mr-2" />
                   {t.details}
                 </h4>
                 
                 <div className="space-y-3 text-sm">
-                  <div className="flex justify-between py-2 border-b">
+                  <div className="flex justify-between py-2 border-b divider-soft">
                     <span className="text-gray-500">{t.owner}</span>
                     <span className="font-medium">{result.details.owner}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
+                  <div className="flex justify-between py-2 border-b divider-soft">
                     <span className="text-gray-500">{t.plot}</span>
                     <span className="font-medium">{result.details.plot}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
+                  <div className="flex justify-between py-2 border-b divider-soft">
                     <span className="text-gray-500">{t.location}</span>
                     <span className="font-medium">{result.details.location}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
+                  <div className="flex justify-between py-2 border-b divider-soft">
                     <span className="text-gray-500">{t.issuer}</span>
                     <span className="font-medium">{result.details.issuer || 'Ministry of Lands'}</span>
                   </div>
-                  <div className="flex justify-between py-2 border-b">
+                  <div className="flex justify-between py-2 border-b divider-soft">
                     <span className="text-gray-500">{t.timestamp}</span>
                     <span className="font-medium">{result.details.issue_date}</span>
                   </div>
@@ -356,7 +306,7 @@ const DocumentVerification = ({ language }) => {
               </div>
 
               {/* Hash Match Status */}
-              <div className={`p-3 rounded-lg ${
+              <div className={`p-3 rounded-xl ${
                 result.details.hash_match ? 'bg-green-50' : 'bg-red-50'
               }`}>
                 <div className="flex items-center space-x-2">
@@ -396,25 +346,6 @@ const DocumentVerification = ({ language }) => {
         </div>
       </div>
 
-      {/* Demo Tips */}
-      <div className="mt-8 bg-blue-50 p-4 rounded-lg">
-        <h4 className="font-medium text-blue-800 mb-2 flex items-center">
-          <AlertTriangle className="h-4 w-4 mr-2" />
-          {language === 'en' ? 'Demo Tips' : 'Vidokezo vya Majaribio'}
-        </h4>
-        <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
-          <li>
-            {language === 'en' 
-              ? 'Upload any document to see "AUTHENTIC" result'
-              : 'Pakia hati yoyote kuona "HALISI"'}
-          </li>
-          <li>
-            {language === 'en'
-              ? 'Try renaming a file to include "fake" to see forgery detection'
-              : 'Jaribu kubadilisha jina la faili kuwa na "fake" kuona utambuzi wa bandia'}
-          </li>
-        </ul>
-      </div>
     </div>
   );
 };

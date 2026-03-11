@@ -105,6 +105,51 @@ async def get_all_documents(
         }
         for doc in docs
     ]
+
+@router.post("/api/documents/verify")
+async def verify_document(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    try:
+        content = await file.read()
+        file_hash = hashlib.sha256(content).hexdigest()
+
+        doc = DocumentCRUD.get_document_by_file_hash(db, file_hash)
+        if not doc:
+            return {
+                "is_authentic": False,
+                "confidence": 0.2,
+                "details": {
+                    "hash_match": False,
+                    "tamper_detected": True,
+                    "issue_date": None,
+                    "owner": None,
+                    "plot": None,
+                    "location": None,
+                    "issuer": None,
+                    "verified_by": None,
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+
+        return {
+            "is_authentic": True,
+            "confidence": 0.98,
+            "details": {
+                "hash_match": True,
+                "tamper_detected": False,
+                "issue_date": doc.created_at.date().isoformat() if doc.created_at else None,
+                "owner": doc.owner_name,
+                "plot": doc.plot_number,
+                "location": doc.location,
+                "issuer": "Ministry of Lands",
+                "verified_by": "System",
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 @router.get("/api/documents/pdf/{record_id}")
 async def generate_document_pdf(record_id: str, db: Session = Depends(get_db)):
     """

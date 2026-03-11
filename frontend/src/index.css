@@ -1,3 +1,138 @@
 @import "https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Merriweather:wght@400;700&display=swap');
 
-/* Your custom styles below */
+:root {
+  --brand-900: #103124;
+  --brand-800: #164033;
+  --brand-700: #23664d;
+  --brand-600: #338a65;
+  --brand-500: #46a67b;
+  --ink-900: #101828;
+  --ink-700: #344054;
+  --ink-600: #475467;
+  --surface: #fdfcf8;
+  --surface-muted: #f6f4ee;
+  --border-soft: rgba(16, 24, 40, 0.10);
+  --shadow-soft: 0 10px 28px rgba(16, 24, 40, 0.10);
+  --shadow-strong: 0 22px 56px rgba(16, 24, 40, 0.16);
+}
+
+body {
+  font-family: "Inter", sans-serif;
+  color: var(--ink-900);
+  background: var(--surface-muted);
+}
+
+h1, h2, h3, h4, .font-display {
+  font-family: "Merriweather", serif;
+}
+
+.app-shell {
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(51, 138, 101, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(35, 102, 77, 0.10), transparent 55%),
+    linear-gradient(180deg, rgba(253, 252, 248, 0.98) 0%, rgba(245, 244, 238, 0.98) 100%);
+}
+
+.sidebar {
+  background:
+    radial-gradient(340px 340px at 18% 0%, rgba(70, 166, 123, 0.22), transparent 60%),
+    linear-gradient(180deg, var(--brand-900) 0%, var(--brand-800) 45%, #0b2018 100%);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid var(--border-soft);
+  border-radius: 18px;
+  box-shadow: var(--shadow-soft);
+}
+
+.card-soft {
+  background: rgba(253, 252, 249, 0.98);
+  border: 1px solid var(--border-soft);
+  border-radius: 16px;
+}
+
+.divider-soft {
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #46a67b 0%, #338a65 100%);
+  color: #fff;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.02);
+  box-shadow: var(--shadow-strong);
+}
+
+.btn-ghost {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border-soft);
+  border-radius: 12px;
+}
+
+.premium-band {
+  background: linear-gradient(135deg, rgba(58, 151, 112, 0.14) 0%, rgba(255, 255, 255, 0.85) 45%, rgba(245, 244, 238, 0.9) 100%);
+  border: 1px solid rgba(16, 24, 40, 0.08);
+  box-shadow: var(--shadow-soft);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.premium-band::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 6px;
+  background: linear-gradient(180deg, #3a9770 0%, #2c7a5b 100%);
+}
+
+
+.gold-rule {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(198, 152, 61, 0.7), rgba(198, 152, 61, 0.15));
+  border-radius: 999px;
+}
+.official-watermark {
+  position: relative;
+}
+
+.official-watermark::after {
+  content: "REPUBLIC OF TANZANIA";
+  position: absolute;
+  right: 24px;
+  top: 22px;
+  font-size: 11px;
+  letter-spacing: 0.28em;
+  color: rgba(16, 24, 40, 0.18);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+
+.official-seal {
+  position: relative;
+}
+
+.official-seal::before {
+  content: "";
+  position: absolute;
+  right: 22px;
+  top: 52px;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  border: 2px solid rgba(44, 122, 91, 0.25);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.5);
+  background:
+    radial-gradient(circle at 30% 30%, rgba(44, 122, 91, 0.18), transparent 55%),
+    radial-gradient(circle at 70% 70%, rgba(44, 122, 91, 0.12), transparent 60%);
+  opacity: 0.6;
+  pointer-events: none;
+}

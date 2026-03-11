@@ -31,6 +31,10 @@ class DocumentCRUD:
         return db.query(Document).filter(Document.record_id == record_id).first()
 
     @staticmethod
+    def get_document_by_file_hash(db: Session, file_hash: str):
+        return db.query(Document).filter(Document.file_hash == file_hash).first()
+
+    @staticmethod
     def get_all_documents(db: Session, skip: int = 0, limit: int = 100):
         return db.query(Document).offset(skip).limit(limit).all()
     

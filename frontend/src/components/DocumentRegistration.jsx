@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, FileText, Fingerprint, Shield, AlertCircle, Scan } from 'lucide-react';
+import { Upload, FileText, Fingerprint, Shield, AlertCircle, Scan, Download, Printer } from 'lucide-react';
 import axios from 'axios';
 
 const DocumentRegistration = ({ language }) => {
@@ -194,7 +194,7 @@ const DocumentRegistration = ({ language }) => {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-800">{t.title}</h2>
+        <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.title}</h2>
         <p className="text-gray-500 mt-2">{t.subtitle}</p>
       </div>
 
@@ -218,7 +218,7 @@ const DocumentRegistration = ({ language }) => {
 
       {/* Step 1: Form */}
       {step === 1 && (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           <form className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
@@ -230,7 +230,7 @@ const DocumentRegistration = ({ language }) => {
                   name="owner"
                   value={formData.owner}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                   required
                 />
               </div>
@@ -244,7 +244,7 @@ const DocumentRegistration = ({ language }) => {
                   name="plot_number"
                   value={formData.plot_number}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                   placeholder="e.g., PLT-2024-001"
                   required
                 />
@@ -259,7 +259,7 @@ const DocumentRegistration = ({ language }) => {
                   name="location"
                   value={formData.location}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                   required
                 />
               </div>
@@ -273,7 +273,7 @@ const DocumentRegistration = ({ language }) => {
                   name="area"
                   value={formData.area}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                   required
                 />
               </div>
@@ -286,7 +286,7 @@ const DocumentRegistration = ({ language }) => {
                   name="region"
                   value={formData.region}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                 >
                   {regions.map(r => (
                     <option key={r} value={r}>{r}</option>
@@ -303,7 +303,7 @@ const DocumentRegistration = ({ language }) => {
                   name="district"
                   value={formData.district}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 bg-white/80"
                 />
               </div>
             </div>
@@ -313,7 +313,7 @@ const DocumentRegistration = ({ language }) => {
                 type="button"
                 onClick={() => setStep(2)}
                 disabled={!formData.owner || !formData.plot_number || !formData.location || !formData.area}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className="btn-primary px-6 py-2 transition-colors disabled:opacity-50 flex items-center space-x-2"
               >
                 <span>{t.next}</span>
                 <Upload className="h-4 w-4" />
@@ -325,10 +325,10 @@ const DocumentRegistration = ({ language }) => {
 
       {/* Step 2: Upload Document */}
       {step === 2 && (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           <h3 className="text-lg font-semibold mb-4">{t.uploadDoc}</h3>
           
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors">
+          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60">
             <input
               type="file"
               id="file-upload"
@@ -354,7 +354,7 @@ const DocumentRegistration = ({ language }) => {
           <div className="flex justify-between mt-6">
             <button
               onClick={() => setStep(1)}
-              className="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              className="px-6 py-2 border border-gray-300 rounded-xl hover:bg-gray-50 transition-colors"
             >
               {t.back}
             </button>
@@ -363,7 +363,7 @@ const DocumentRegistration = ({ language }) => {
               <button
                 onClick={handleSubmit}
                 disabled={loading}
-                className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
+              className="btn-primary px-6 py-2 transition-colors disabled:opacity-50 flex items-center space-x-2"
               >
                 {loading ? (
                   <>
@@ -381,7 +381,7 @@ const DocumentRegistration = ({ language }) => {
           </div>
 
           {error && (
-            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-lg flex items-center space-x-2">
+            <div className="mt-4 p-3 bg-red-100 text-red-700 rounded-xl flex items-center space-x-2 border border-red-200/70">
               <AlertCircle className="h-5 w-5" />
               <span>{error}</span>
             </div>
@@ -391,7 +391,7 @@ const DocumentRegistration = ({ language }) => {
 
       {/* Step 3: Success & Fingerprint */}
       {step === 3 && result && (
-        <div className="bg-white rounded-xl shadow-sm p-8 border border-gray-100">
+        <div className="card p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-full mb-4">
               <Shield className="h-8 w-8 text-green-600" />
@@ -419,15 +419,15 @@ const DocumentRegistration = ({ language }) => {
             </div>
           )}
 
-          <div className="bg-gray-50 rounded-lg p-6 mb-6">
+          <div className="card-soft p-6 mb-6">
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500">{t.recordId}</p>
-                <p className="font-mono text-sm bg-white p-3 rounded-lg border">{result.record_id}</p>
+                <p className="font-mono text-sm bg-white p-3 rounded-lg border divider-soft">{result.record_id}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t.hashValue}</p>
-                <p className="font-mono text-xs bg-white p-3 rounded-lg border break-all">{result.fingerprint}</p>
+                <p className="font-mono text-xs bg-white p-3 rounded-lg border divider-soft break-all">{result.fingerprint}</p>
               </div>
               
               {/* Mini QR for printing */}
@@ -440,7 +440,7 @@ const DocumentRegistration = ({ language }) => {
                     <img 
                       src={`data:image/png;base64,${result.mini_qr}`} 
                       alt="Print QR"
-                      className="w-20 h-20 border-2 border-gray-300 rounded"
+                      className="w-20 h-20 border-2 border-gray-300 rounded-lg"
                     />
                     <div className="text-xs text-gray-500">
                       <p>✓ Stick on title deed</p>
@@ -453,10 +453,10 @@ const DocumentRegistration = ({ language }) => {
             </div>
           </div>
 
-          <div className="flex space-x-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <button
               onClick={resetForm}
-              className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-200 transition-colors font-medium"
+              className="flex-1 btn-ghost text-gray-700 px-6 py-3 transition-colors font-medium"
             >
               {t.registerAnother}
             </button>
@@ -466,17 +466,17 @@ const DocumentRegistration = ({ language }) => {
               href={`http://localhost:8000/api/documents/pdf/${result.record_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-medium flex items-center justify-center space-x-2"
+              className="flex-1 btn-primary px-6 py-3 transition-colors font-medium flex items-center justify-center space-x-2"
             >
-              <span>📄</span>
+              <Download className="h-4 w-4" />
               <span>{t.downloadPDF}</span>
             </a>
             
             <button 
               onClick={printQR}
-              className="flex-1 bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium flex items-center justify-center space-x-2"
+              className="flex-1 btn-primary px-6 py-3 transition-colors font-medium flex items-center justify-center space-x-2"
             >
-              <span>🖨️</span>
+              <Printer className="h-4 w-4" />
               <span>{t.print}</span>
             </button>
           </div>
