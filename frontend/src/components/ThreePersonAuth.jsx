@@ -72,7 +72,7 @@ const ThreePersonAuth = ({ language }) => {
   useEffect(() => {
     const fetchOfficers = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/auth/officers');
+        const response = await axios.get('/api/auth/officers');
         const apiOfficers = Array.isArray(response.data) ? response.data : [];
         setOfficers(apiOfficers.map((o) => ({ ...o, approved: false, password: '' })));
       } catch (err) {
@@ -90,7 +90,7 @@ const ThreePersonAuth = ({ language }) => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:8000/api/auth/approve', {
+      const response = await axios.post('/api/auth/approve', {
         request_id: requestId,
         officer_id: officerId,
         password: officer.password
@@ -186,7 +186,7 @@ const ThreePersonAuth = ({ language }) => {
                 setLoading(true);
                 setError('');
                 try {
-                  const response = await axios.post('http://localhost:8000/api/auth/request', {
+                  const response = await axios.post('/api/auth/request', {
                     document_id: documentId,
                     reason
                   });

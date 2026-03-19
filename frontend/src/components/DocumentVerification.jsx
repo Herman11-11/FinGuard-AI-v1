@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Fingerprint, Scan, Upload, Clock, Hash } from 'lucide-react';
 import axios from 'axios';
 
@@ -9,6 +9,10 @@ const DocumentVerification = ({ language }) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [scanMethod, setScanMethod] = useState('upload'); // 'upload' or 'scan'
+  const [cameraOn, setCameraOn] = useState(false);
+  const [cameraError, setCameraError] = useState(null);
+  const videoRef = useRef(null);
+  const streamRef = useRef(null);
 
   const translations = {
     en: {
@@ -75,8 +79,38 @@ const DocumentVerification = ({ language }) => {
 
   const t = translations[language];
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+    setCameraOn(false);
+  };
+
+  const startCamera = async () => {
+    setCameraError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setCameraOn(true);
+    } catch (err) {
+      setCameraError(language === 'en' ? 'Camera permission denied or not available' : 'Kamera haipatikani au ruhusa imekataliwa');
+      setCameraOn(false);
+    }
+  };
+
+  useEffect(() => {
+    if (scanMethod === 'upload') {
+      stopCamera();
+    }
+    return () => stopCamera();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanMethod]);
+
+  const setSelectedFile = (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
       setResult(null);
@@ -95,6 +129,21 @@ const DocumentVerification = ({ language }) => {
     }
   };
 
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setSelectedFile(selectedFile);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files?.[0];
+    setSelectedFile(droppedFile);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+  };
+
   const handleVerify = async () => {
     if (!file) return;
     
@@ -105,7 +154,7 @@ const DocumentVerification = ({ language }) => {
     formData.append('file', file);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/documents/verify', formData, {
+      const response = await axios.post('/api/documents/verify', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
@@ -158,13 +207,16 @@ const DocumentVerification = ({ language }) => {
         <div className="space-y-6">
           {scanMethod === 'upload' ? (
             <div className="card p-8">
-              <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60">
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60"
+                onDrop={handleDrop}
+                onDragOver={handleDragOver}
+              >
                 <input
                   type="file"
                   id="file-upload"
                   className="hidden"
                   onChange={handleFileChange}
-                  accept=".jpg,.jpeg,.png,.pdf"
                 />
                 
                 {preview ? (
@@ -214,13 +266,26 @@ const DocumentVerification = ({ language }) => {
           ) : (
             <div className="card p-8">
               <h3 className="text-lg font-semibold mb-4">{t.scanQR}</h3>
-              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200/70">
-                <Scan className="h-16 w-16 text-gray-400" />
+              <div className="aspect-square bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200/70 overflow-hidden">
+                {cameraOn ? (
+                  <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
+                ) : (
+                  <Scan className="h-16 w-16 text-gray-400" />
+                )}
               </div>
               <p className="text-sm text-gray-500 mt-4 text-center">{t.placeQR}</p>
-              <button className="w-full mt-4 btn-primary px-6 py-3">
-                {t.startCamera}
-              </button>
+              {cameraError && (
+                <div className="mt-3 text-sm text-red-600 text-center">{cameraError}</div>
+              )}
+              {!cameraOn ? (
+                <button onClick={startCamera} className="w-full mt-4 btn-primary px-6 py-3">
+                  {t.startCamera}
+                </button>
+              ) : (
+                <button onClick={stopCamera} className="w-full mt-4 btn-ghost px-6 py-3">
+                  {t.stopCamera}
+                </button>
+              )}
             </div>
           )}
 

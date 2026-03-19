@@ -34,6 +34,7 @@ async def get_stats(db: Session = Depends(get_db)):
         "pendingAuth": pending_auth,
         "fraudulentDetected": fraudulent_detected,
         "recentActivity": recent_activity,
+        "lastLogin": datetime.now().isoformat(),
         "systemHealth": {
             "apiResponse": None,
             "databaseLoad": None,

@@ -93,8 +93,7 @@ const DocumentRegistration = ({ language }) => {
     });
   };
 
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
+  const setSelectedFile = (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
       if (selectedFile.type.startsWith('image/')) {
@@ -108,6 +107,21 @@ const DocumentRegistration = ({ language }) => {
       }
       setStep(2);
     }
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    setSelectedFile(selectedFile);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files?.[0];
+    setSelectedFile(droppedFile);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
   };
 
   const handleSubmit = async (e) => {
@@ -125,7 +139,7 @@ const DocumentRegistration = ({ language }) => {
     data.append('district', formData.district);
 
     try {
-      const response = await axios.post('http://localhost:8000/api/documents/register', data, {
+      const response = await axios.post('/api/documents/register', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -328,13 +342,16 @@ const DocumentRegistration = ({ language }) => {
         <div className="card p-8">
           <h3 className="text-lg font-semibold mb-4">{t.uploadDoc}</h3>
           
-          <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60">
+          <div
+            className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-green-500 transition-colors bg-white/60"
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+          >
             <input
               type="file"
               id="file-upload"
               className="hidden"
               onChange={handleFileChange}
-              accept=".jpg,.jpeg,.png,.pdf"
             />
             
             {preview ? (
@@ -463,7 +480,7 @@ const DocumentRegistration = ({ language }) => {
             
             {/* Download PDF Button */}
             <a
-              href={`http://localhost:8000/api/documents/pdf/${result.record_id}`}
+              href={`/api/documents/pdf/${result.record_id}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex-1 btn-primary px-6 py-3 transition-colors font-medium flex items-center justify-center space-x-2"

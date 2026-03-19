@@ -1,0 +1,5 @@
+backend/keys/firebase-admin.json
+backend/keys/*.json
+venv/
+.venv/
+node_modules/

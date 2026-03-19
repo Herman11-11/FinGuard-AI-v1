@@ -20,7 +20,7 @@ const Dashboard = ({ language }) => {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/stats');
+        const response = await axios.get('/api/stats');
         setStats(response.data);
         setLoading(false);
       } catch (error) {
@@ -39,14 +39,14 @@ const Dashboard = ({ language }) => {
   const translations = {
     en: {
       welcome: 'Welcome back, Officer John',
-      lastLogin: 'Last login: Today at 09:45 AM',
+      lastLogin: 'Last login',
       totalDocs: 'Total Documents',
       verified: 'Verified Today',
       pending: 'Pending Auth',
       fraudulent: 'Fraudulent Detected',
       recentActivity: 'Recent Activity',
       systemStatus: 'System Status',
-      allSystemsOperational: '✅ All systems operational',
+      allSystemsOperational: 'All systems operational',
       viewAll: 'View All',
       stats: 'System Statistics',
       fromYesterday: 'from yesterday',
@@ -55,14 +55,14 @@ const Dashboard = ({ language }) => {
     },
     sw: {
       welcome: 'Karibu, Afisa John',
-      lastLogin: 'Mara ya mwisho: Leo 09:45',
+      lastLogin: 'Mara ya mwisho',
       totalDocs: 'Jumla ya Hati',
       verified: 'Zilizothibitishwa Leo',
       pending: 'Zinasubiri Uthibitisho',
       fraudulent: 'Zilizogunduliwa Bandia',
       recentActivity: 'Shughuli za Hivi Karibuni',
       systemStatus: 'Hali ya Mfumo',
-      allSystemsOperational: '✅ Mfumo unafanya kazi vizuri',
+      allSystemsOperational: 'Mfumo unafanya kazi vizuri',
       viewAll: 'Angalia Zote',
       stats: 'Takwimu za Mfumo',
       fromYesterday: 'kutoka jana',
@@ -84,25 +84,25 @@ const Dashboard = ({ language }) => {
       icon: FileText, 
       label: t.totalDocs, 
       value: formatValue(stats.totalDocuments), 
-      color: 'bg-blue-500'
+      tone: 'stat-blue'
     },
     { 
       icon: CheckCircle, 
       label: t.verified, 
       value: formatValue(stats.verifiedToday), 
-      color: 'bg-green-500'
+      tone: 'stat-green'
     },
     { 
       icon: Users, 
       label: t.pending, 
       value: formatValue(stats.pendingAuth), 
-      color: 'bg-yellow-500'
+      tone: 'stat-amber'
     },
     { 
       icon: AlertTriangle, 
       label: t.fraudulent, 
       value: formatValue(stats.fraudulentDetected), 
-      color: 'bg-red-500'
+      tone: 'stat-rose'
     },
   ];
 
@@ -114,13 +114,17 @@ const Dashboard = ({ language }) => {
     );
   }
 
+  const lastLoginText = stats.lastLogin
+    ? new Date(stats.lastLogin).toLocaleString()
+    : new Date().toLocaleString();
+
   return (
     <div className="space-y-6">
       {/* Premium Government Band */}
       <div className="premium-band p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500">United Republic of Tanzania</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500">Ministry of Lands</p>
             <h3 className="text-2xl font-semibold text-gray-900 font-display mt-1">
               National Digital Land Registry
             </h3>
@@ -128,12 +132,6 @@ const Dashboard = ({ language }) => {
             <p className="text-sm text-gray-600 mt-3">
               Official recordkeeping and verification for land ownership and title deeds.
             </p>
-          </div>
-          <div className="card-soft p-4 min-w-[240px]">
-            <p className="text-xs text-gray-500">Registry Seal</p>
-            <p className="text-sm font-medium text-gray-800 mt-2">Authenticated by Ministry Systems</p>
-            <p className="text-xs text-gray-500 mt-1">Secure Ledger ID</p>
-            <p className="text-sm font-mono text-gray-700">TZ-LAND-REG-01</p>
           </div>
         </div>
       </div>
@@ -144,11 +142,10 @@ const Dashboard = ({ language }) => {
           <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.welcome}</h2>
           <p className="text-gray-500 mt-1 flex items-center">
             <Clock className="h-4 w-4 mr-1" />
-            {t.lastLogin}
+            {t.lastLogin}: {lastLoginText}
           </p>
         </div>
         <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-sm font-medium flex items-center border border-emerald-200/70 shadow-sm">
-          <div className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></div>
           {t.systemStatus}: {t.allSystemsOperational}
         </div>
       </div>
@@ -162,10 +159,10 @@ const Dashboard = ({ language }) => {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-500">{stat.label}</p>
-                  <p className="text-3xl font-bold mt-2">{stat.value}</p>
+                  <p className="text-3xl font-semibold mt-2 font-display">{stat.value}</p>
                 </div>
-                <div className={`p-3 rounded-xl ${stat.color} shadow-lg`}>
-                  <Icon className="h-6 w-6 text-white" />
+                <div className={`stat-emblem ${stat.tone}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
               </div>
             </div>
@@ -181,7 +178,7 @@ const Dashboard = ({ language }) => {
             {t.viewAll} →
           </button>
         </div>
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
           {Array.isArray(stats.recentActivity) && stats.recentActivity.length > 0 ? (
             stats.recentActivity.map((activity, index) => (
               <div key={index} className="flex items-center justify-between py-3 border-b divider-soft last:border-0">

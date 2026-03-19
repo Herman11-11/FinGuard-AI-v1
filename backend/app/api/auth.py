@@ -1,10 +1,12 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from datetime import datetime
 import hashlib
 import uuid
 
-from models.database import get_db, AccessLog, Document, Officer
+from models.database import get_db, AccessLog, Document, Officer, User
+from services.auth_token import sign, verify
+from services.firebase_admin import verify_id_token
 
 router = APIRouter()
 
@@ -34,15 +36,17 @@ async def request_access(payload: dict, db: Session = Depends(get_db)):
     if not document_id or not reason:
         raise HTTPException(status_code=400, detail="document_id and reason are required")
 
-    doc = db.query(Document).filter(
-        (Document.record_id == document_id) | (Document.plot_number == document_id)
-    ).first()
-    if not doc:
-        raise HTTPException(status_code=404, detail="Document not found")
+    doc = None
+    if document_id != "ADMIN-DB":
+        doc = db.query(Document).filter(
+            (Document.record_id == document_id) | (Document.plot_number == document_id)
+        ).first()
+        if not doc:
+            raise HTTPException(status_code=404, detail="Document not found")
 
     request_id = f"REQ-{str(uuid.uuid4()).upper()[:8]}"
     log = AccessLog(
-        document_id=doc.record_id,
+        document_id=doc.record_id if doc else "ADMIN-DB",
         request_id=request_id,
         requester="system",
         reason=reason,
@@ -103,3 +107,61 @@ async def approve_access(payload: dict, db: Session = Depends(get_db)):
         })
 
     return response
+
+
+def _get_current_user(authorization: str | None, db: Session) -> User:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization.split(" ", 1)[1]
+    payload = verify(token)
+    if not payload or not payload.get("sub"):
+        raise HTTPException(status_code=401, detail="Invalid token")
+    user = db.query(User).filter(User.id == payload["sub"], User.is_active == True).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="User not found")
+    return user
+
+
+@router.post("/api/auth/login")
+async def login(payload: dict, db: Session = Depends(get_db)):
+    email = payload.get("email")
+    password = payload.get("password")
+    if not email or not password:
+        raise HTTPException(status_code=400, detail="email and password required")
+    user = db.query(User).filter(User.email == email, User.is_active == True).first()
+    if not user or user.password_hash != _hash_password(password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = sign({"sub": user.id, "role": user.role}, ttl_seconds=3600)
+    return {"token": token, "role": user.role, "email": user.email}
+
+
+@router.get("/api/auth/me")
+async def me(authorization: str | None = Header(default=None), db: Session = Depends(get_db)):
+    user = _get_current_user(authorization, db)
+    return {"id": user.id, "email": user.email, "role": user.role}
+
+
+def require_admin(authorization: str | None, db: Session) -> User:
+    user = _get_current_user(authorization, db)
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return user
+
+
+def require_firebase_admin(authorization: str | None) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization.split(" ", 1)[1]
+    try:
+        decoded = verify_id_token(token)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid Firebase token")
+    if not decoded.get("admin"):
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return decoded
+
+
+@router.get("/api/auth/firebase-me")
+async def firebase_me(authorization: str | None = Header(default=None)):
+    decoded = require_firebase_admin(authorization)
+    return {"uid": decoded.get("uid"), "email": decoded.get("email"), "admin": decoded.get("admin", False)}
