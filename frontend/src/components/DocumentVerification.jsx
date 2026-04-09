@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, CheckCircle, XCircle, AlertTriangle, Fingerprint, Scan, Upload, Clock, Hash } from 'lucide-react';
+import { Shield, CheckCircle, XCircle, AlertTriangle, Fingerprint, Scan, Upload, Clock, Hash, FileText } from 'lucide-react';
 import axios from 'axios';
 
 const DocumentVerification = ({ language }) => {
@@ -13,6 +13,7 @@ const DocumentVerification = ({ language }) => {
   const [cameraError, setCameraError] = useState(null);
   const videoRef = useRef(null);
   const streamRef = useRef(null);
+  const pdfPreviewUrlRef = useRef(null);
 
   const translations = {
     en: {
@@ -110,19 +111,35 @@ const DocumentVerification = ({ language }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanMethod]);
 
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrlRef.current) {
+        URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
   const setSelectedFile = (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
       setResult(null);
       setError(null);
-      
-      // Create preview for images
+
+      if (pdfPreviewUrlRef.current) {
+        URL.revokeObjectURL(pdfPreviewUrlRef.current);
+        pdfPreviewUrlRef.current = null;
+      }
+
       if (selectedFile.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setPreview(reader.result);
         };
         reader.readAsDataURL(selectedFile);
+      } else if (selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf')) {
+        const url = URL.createObjectURL(selectedFile);
+        pdfPreviewUrlRef.current = url;
+        setPreview(url);
       } else {
         setPreview(null);
       }
@@ -217,14 +234,32 @@ const DocumentVerification = ({ language }) => {
                   id="file-upload"
                   className="hidden"
                   onChange={handleFileChange}
+                  accept="image/*,.pdf,application/pdf"
                 />
                 
                 {preview ? (
                   <div className="space-y-4">
-                    <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                    {file?.type.startsWith('image/') ? (
+                      <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-red-50 text-red-600">
+                          <FileText className="h-10 w-10" />
+                        </div>
+                        <iframe
+                          src={preview}
+                          title="PDF preview"
+                          className="mx-auto h-72 w-full max-w-md rounded-lg border border-gray-200"
+                        />
+                      </div>
+                    )}
                     <p className="text-sm text-gray-600">{file?.name}</p>
                     <button
                       onClick={() => {
+                        if (pdfPreviewUrlRef.current) {
+                          URL.revokeObjectURL(pdfPreviewUrlRef.current);
+                          pdfPreviewUrlRef.current = null;
+                        }
                         setFile(null);
                         setPreview(null);
                         setResult(null);

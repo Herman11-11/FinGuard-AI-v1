@@ -140,10 +140,17 @@ const AppShell = () => {
         localStorage.setItem('finguard-email', u.email || '');
       }
     } catch (err) {
+      console.error('Firebase Google sign-in failed:', err);
       if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/popup-closed-by-user') {
         await signInWithRedirect(auth, provider);
+      } else if (err?.code === 'auth/unauthorized-domain') {
+        setAuthError('This domain is not authorized in Firebase. Use http://localhost:5173 or add 127.0.0.1 to Authorized Domains.');
+      } else if (err?.code === 'auth/operation-not-allowed') {
+        setAuthError('Google sign-in is not enabled in Firebase Authentication.');
+      } else if (err?.code === 'auth/network-request-failed') {
+        setAuthError('Network request failed during sign-in. Check your internet connection and try again.');
       } else {
-        setAuthError('Sign-in failed. Please try again.');
+        setAuthError(err?.message || 'Sign-in failed. Please try again.');
       }
     } finally {
       setAuthLoading(false);

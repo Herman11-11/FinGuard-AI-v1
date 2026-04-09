@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, Fingerprint, Shield, AlertCircle, Scan, Download, Printer } from 'lucide-react';
 import axios from 'axios';
 
@@ -18,6 +18,7 @@ const DocumentRegistration = ({ language }) => {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [step, setStep] = useState(1);
+  const pdfPreviewUrlRef = useRef(null);
 
   const regions = [
     'Dar es Salaam', 'Arusha', 'Mwanza', 'Mbeya', 
@@ -86,6 +87,14 @@ const DocumentRegistration = ({ language }) => {
 
   const t = translations[language];
 
+  useEffect(() => {
+    return () => {
+      if (pdfPreviewUrlRef.current) {
+        URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -96,12 +105,20 @@ const DocumentRegistration = ({ language }) => {
   const setSelectedFile = (selectedFile) => {
     if (selectedFile) {
       setFile(selectedFile);
+      if (pdfPreviewUrlRef.current) {
+        URL.revokeObjectURL(pdfPreviewUrlRef.current);
+        pdfPreviewUrlRef.current = null;
+      }
       if (selectedFile.type.startsWith('image/')) {
         const reader = new FileReader();
         reader.onloadend = () => {
           setPreview(reader.result);
         };
         reader.readAsDataURL(selectedFile);
+      } else if (selectedFile.type === 'application/pdf' || selectedFile.name.toLowerCase().endsWith('.pdf')) {
+        const url = URL.createObjectURL(selectedFile);
+        pdfPreviewUrlRef.current = url;
+        setPreview(url);
       } else {
         setPreview(null);
       }
@@ -352,11 +369,20 @@ const DocumentRegistration = ({ language }) => {
               id="file-upload"
               className="hidden"
               onChange={handleFileChange}
+              accept="image/*,.pdf,application/pdf"
             />
             
             {preview ? (
               <div className="space-y-4">
-                <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                {file?.type.startsWith('image/') ? (
+                  <img src={preview} alt="Preview" className="max-h-64 mx-auto rounded-lg" />
+                ) : (
+                  <iframe
+                    src={preview}
+                    title="PDF preview"
+                    className="mx-auto h-72 w-full max-w-md rounded-lg border border-gray-200"
+                  />
+                )}
                 <p className="text-sm text-gray-600">{file?.name}</p>
               </div>
             ) : (
