@@ -40,8 +40,14 @@ class SteganographyService:
             data_to_hide = {
                 "record_id": data.get("record_id", ""),
                 "fingerprint": data.get("fingerprint", ""),
+                "full_document_hash": data.get("full_document_hash", data.get("fingerprint", "")),
+                "file_hash": data.get("file_hash", ""),
+                "metadata_hash": data.get("metadata_hash", ""),
+                "ai_signature": data.get("ai_signature", ""),
+                "payload_type": data.get("payload_type", "document_trust_bundle"),
                 "owner": data.get("owner", ""),
                 "plot": data.get("plot", ""),
+                "location": data.get("location", ""),
                 "timestamp": datetime.now().isoformat(),
                 "version": "FinGuard-AI"
             }
@@ -162,3 +168,13 @@ class SteganographyService:
         """Check if image contains correct fingerprint"""
         hidden = SteganographyService.extract_data(image_bytes)
         return hidden and hidden.get("fingerprint") == expected_fingerprint
+
+    @staticmethod
+    def embed_fingerprint(image_bytes: bytes, data: dict) -> bytes:
+        """Compatibility wrapper for existing document flow."""
+        return SteganographyService.embed_data(image_bytes, data)
+
+    @staticmethod
+    def extract_fingerprint(image_bytes: bytes) -> dict:
+        """Compatibility wrapper for existing document flow."""
+        return SteganographyService.extract_data(image_bytes)

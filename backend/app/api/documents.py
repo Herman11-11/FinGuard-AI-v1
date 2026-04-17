@@ -10,15 +10,33 @@ from fastapi.responses import Response
 import os
 
 from services.qr_service import QRService
-from models.database import get_db, Document
+from models.database import get_db, Document, AccessLog
 from api.auth import require_firebase_admin
 from crud.documents import DocumentCRUD
 from services.steganography import SteganographyService
+from services.ai_fingerprint_service import AIFingerprintService
 
 router = APIRouter()
 
 
-router = APIRouter()
+def log_verification_event(
+    db: Session,
+    *,
+    document_id: str,
+    reason: str,
+    status: str,
+):
+    event = AccessLog(
+        document_id=document_id,
+        request_id=f"VER-{str(uuid.uuid4()).upper()[:8]}",
+        requester="system",
+        reason=reason,
+        approvals=[],
+        status=status,
+        created_at=datetime.now(),
+    )
+    db.add(event)
+    db.commit()
 
 @router.post("/api/documents/register")
 async def register_document(
@@ -52,6 +70,15 @@ async def register_document(
         
         record_id = str(uuid.uuid4()).upper()[:8]
         doc_data['record_id'] = f"LAND-{record_id}"
+        doc_data["metadata_hash"] = data_hash
+
+        ai_fingerprint = None
+        if file.content_type and file.content_type.startswith('image/'):
+            try:
+                ai_fingerprint = AIFingerprintService.generate_fingerprint(content)
+                doc_data["ai_fingerprint"] = ai_fingerprint
+            except Exception as e:
+                print(f"⚠️ AI fingerprint generation failed: {e}")
         
         saved_doc = DocumentCRUD.create_document(
             db=db,
@@ -77,6 +104,11 @@ async def register_document(
                     {
                         "record_id": f"LAND-{record_id}",
                         "fingerprint": ultimate_fingerprint,
+                        "full_document_hash": ultimate_fingerprint,
+                        "file_hash": file_hash,
+                        "metadata_hash": data_hash,
+                        "ai_signature": ai_fingerprint.get("signature") if ai_fingerprint else None,
+                        "payload_type": "document_trust_bundle",
                         "owner": owner,
                         "plot": plot_number,
                         "location": location,
@@ -105,9 +137,13 @@ async def register_document(
             "success": True,
             "record_id": f"LAND-{record_id}",
             "fingerprint": ultimate_fingerprint,
+            "ai_signature": ai_fingerprint.get("signature") if ai_fingerprint else None,
+            "ai_algorithm": ai_fingerprint.get("algorithm") if ai_fingerprint else None,
+            "ai_embedding_dim": ai_fingerprint.get("embedding_dim") if ai_fingerprint else None,
             "qr_code": qr_code,
             "mini_qr": mini_qr,
             "stego_available": stego_available,
+            "ai_fingerprint_available": ai_fingerprint is not None,
             "filename": file.filename,
             "size": len(content),
             "message": "Document registered successfully" + (" with invisible fingerprint" if stego_available else "")
@@ -158,6 +194,12 @@ async def verify_document(
     try:
         content = await file.read()
         file_hash = hashlib.sha256(content).hexdigest()
+        ai_candidate = None
+        ai_verification = {
+            "available": False,
+            "match": False,
+            "similarity": None,
+        }
 
         # First check by file hash
         doc = DocumentCRUD.get_document_by_file_hash(db, file_hash)
@@ -173,12 +215,30 @@ async def verify_document(
             except Exception as e:
                 print(f"Steganography extraction failed: {e}")
 
+        if file.content_type and file.content_type.startswith('image/'):
+            try:
+                ai_candidate = AIFingerprintService.generate_fingerprint(content)
+                if doc and isinstance(doc.metadata_json, dict):
+                    ai_verification = AIFingerprintService.compare_fingerprints(
+                        doc.metadata_json.get("ai_fingerprint"),
+                        ai_candidate,
+                    )
+            except Exception as e:
+                print(f"AI fingerprint verification failed: {e}")
+
         if not doc:
+            log_verification_event(
+                db,
+                document_id=stego_data.get("record_id") if stego_data else "UNMATCHED",
+                reason="Document verification failed",
+                status="fraudulent",
+            )
             return {
                 "is_authentic": False,
                 "confidence": 0.2,
                 "has_steganography": stego_data is not None,
                 "stego_data": stego_data,
+                "ai_verification": ai_verification,
                 "details": {
                     "hash_match": False,
                     "tamper_detected": True,
@@ -192,14 +252,19 @@ async def verify_document(
                 }
             }
 
+        hash_match = doc.file_hash == file_hash
+        ai_match = ai_verification.get("match", False)
+        confidence = 0.98 if hash_match else (0.9 if ai_match or stego_data else 0.72)
+
         return {
             "is_authentic": True,
-            "confidence": 0.98,
+            "confidence": confidence,
             "has_steganography": stego_data is not None,
             "stego_data": stego_data,
+            "ai_verification": ai_verification,
             "details": {
-                "hash_match": True,
-                "tamper_detected": False,
+                "hash_match": hash_match,
+                "tamper_detected": not hash_match and not ai_match,
                 "issue_date": doc.created_at.date().isoformat() if doc.created_at else None,
                 "owner": doc.owner_name,
                 "plot": doc.plot_number,
@@ -279,6 +344,8 @@ async def admin_view_documents(
     documents = db.query(Document).all()
     result = []
     for doc in documents:
+        metadata = doc.metadata_json if isinstance(doc.metadata_json, dict) else {}
+        ai_fingerprint = metadata.get("ai_fingerprint") if isinstance(metadata, dict) else None
         result.append({
             "id": doc.id,
             "record_id": doc.record_id,
@@ -289,10 +356,45 @@ async def admin_view_documents(
             "region": doc.region,
             "district": doc.district,
             "fingerprint": doc.document_hash[:20] + "...",
+            "full_fingerprint": doc.document_hash,
+            "ai_signature": ai_fingerprint.get("signature") if isinstance(ai_fingerprint, dict) else None,
+            "ai_algorithm": ai_fingerprint.get("algorithm") if isinstance(ai_fingerprint, dict) else None,
+            "ai_embedding_dim": ai_fingerprint.get("embedding_dim") if isinstance(ai_fingerprint, dict) else None,
             "created_at": doc.created_at,
             "file_hash": doc.file_hash[:20] + "..."
         })
     return {"documents": result}
+
+
+@router.get("/api/admin/audit-logs")
+async def admin_view_audit_logs(
+    status: str | None = None,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db)
+):
+    require_firebase_admin(authorization)
+
+    query = db.query(AccessLog).order_by(AccessLog.created_at.desc())
+    if status:
+        query = query.filter(AccessLog.status == status)
+
+    logs = query.limit(200).all()
+    return {
+        "logs": [
+            {
+                "id": log.id,
+                "request_id": log.request_id,
+                "document_id": log.document_id,
+                "requester": log.requester,
+                "reason": log.reason,
+                "status": log.status,
+                "approvals": log.approvals or [],
+                "approval_count": len(log.approvals or []),
+                "created_at": log.created_at.isoformat() if log.created_at else None,
+            }
+            for log in logs
+        ]
+    }
 
 # New endpoint to verify steganography specifically
 @router.post("/api/documents/verify-stego")

@@ -80,6 +80,11 @@ async def approve_access(payload: dict, db: Session = Depends(get_db)):
     if not log:
         raise HTTPException(status_code=404, detail="Request not found")
 
+    try:
+        officer_id = int(officer_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid officer_id")
+
     officer = db.query(Officer).filter(Officer.id == officer_id, Officer.is_active == True).first()
     if not officer:
         raise HTTPException(status_code=404, detail="Officer not found")
@@ -87,17 +92,18 @@ async def approve_access(payload: dict, db: Session = Depends(get_db)):
     if officer.password_hash and officer.password_hash != _hash_password(password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    approvals = log.approvals or []
+    approvals = [int(approved_id) for approved_id in (log.approvals or [])]
     if officer_id not in approvals:
-        approvals.append(officer_id)
+        approvals = approvals + [officer_id]
 
     log.approvals = approvals
     log.status = "approved" if len(approvals) >= 3 else "pending"
     db.commit()
+    db.refresh(log)
 
     response = {
         "request_id": request_id,
-        "approved_officers": approvals
+        "approved_officers": [int(approved_id) for approved_id in (log.approvals or [])]
     }
 
     if log.status == "approved":
@@ -154,8 +160,8 @@ def require_firebase_admin(authorization: str | None) -> dict:
     token = authorization.split(" ", 1)[1]
     try:
         decoded = verify_id_token(token)
-    except Exception:
-        raise HTTPException(status_code=401, detail="Invalid Firebase token")
+    except Exception as exc:
+        raise HTTPException(status_code=401, detail=f"Invalid Firebase token: {str(exc)}")
     if not decoded.get("admin"):
         raise HTTPException(status_code=403, detail="Admin access required")
     return decoded

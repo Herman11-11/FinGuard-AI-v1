@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter, Routes, Route, NavLink, useLocation } from 'react-router-dom';
-import { Landmark, Shield, QrCode, Languages, LogOut, Menu, FileText, Users, Moon, Sun, Database } from 'lucide-react';
+import { BrowserRouter, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
+import { Landmark, Shield, QrCode, Languages, LogOut, Menu, FileText, Moon, Sun, Database } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import DocumentRegistration from './components/DocumentRegistration';
 import DocumentVerification from './components/DocumentVerification';
-import ThreePersonAuth from './components/ThreePersonAuth';
 import AdminDocuments from './components/AdminDocuments';
 import Login from './components/Login';
 import { auth, provider, signInWithPopup, signOut } from './firebase';
@@ -49,7 +48,7 @@ const AppShell = () => {
     '/': t.dashboard,
     '/register': t.register,
     '/verify': t.verify,
-    '/auth': t.auth,
+    '/auth': t.admin,
     '/admin': t.admin
   }[location.pathname] || t.dashboard;
   const republicLabel = language === 'en' ? 'Republic of Tanzania' : 'Jamhuri ya Muungano wa Tanzania';
@@ -204,10 +203,6 @@ const AppShell = () => {
             <QrCode className="h-5 w-5" />
             {sidebarOpen && <span>{t.verify}</span>}
           </NavLink>
-          <NavLink to="/auth" className={navItemClass} title={t.auth}>
-            <Users className="h-5 w-5" />
-            {sidebarOpen && <span>{t.auth}</span>}
-          </NavLink>
           <NavLink to="/admin" className={navItemClass} title={t.admin}>
             <Database className="h-5 w-5" />
             {sidebarOpen && <span>{t.admin}</span>}
@@ -274,7 +269,7 @@ const AppShell = () => {
             <Route path="/" element={<Dashboard language={language} />} />
             <Route path="/register" element={<DocumentRegistration language={language} />} />
             <Route path="/verify" element={<DocumentVerification language={language} />} />
-            <Route path="/auth" element={<ThreePersonAuth language={language} />} />
+            <Route path="/auth" element={<Navigate to="/admin" replace />} />
             <Route path="/admin" element={<AdminDocuments />} />
           </Routes>
         </main>

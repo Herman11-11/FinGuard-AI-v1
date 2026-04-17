@@ -377,6 +377,7 @@ When a document is registered:
 - metadata hash is created
 - file hash is created
 - combined fingerprint is created
+- if file is an image, a lightweight visual AI fingerprint is generated
 - DB record is stored
 - QR data is generated
 - mini QR is generated
@@ -388,8 +389,9 @@ Current verification logic:
 1. compute exact uploaded file hash
 2. try to find matching document by file hash
 3. if not found and file is an image, try steganographic extraction
-4. if record is found, return authentic
-5. otherwise return not authentic
+4. if file is an image and the record is found, compare the current image against the stored visual AI fingerprint
+5. if record is found, return authentic
+6. otherwise return not authentic
 
 Important limitation:
 - a generated PDF or a transformed/scanned version of the original file may not hash-match the original upload
@@ -479,6 +481,12 @@ These were recurring blockers and are worth remembering:
 ### PDF UX confusion
 - fixed frontend preview issue for PDFs
 
+### Phase-1 AI fingerprinting
+- added a lightweight image fingerprint service without changing DB schema
+- image AI fingerprints are stored in `Document.metadata_json["ai_fingerprint"]`
+- registration now embeds the AI fingerprint signature into the steganography payload for images
+- verification now returns `ai_verification` details for image uploads
+
 ---
 
 ## 16. Current Rough Edges / Known Issues
@@ -503,9 +511,11 @@ At the time of writing:
 - preview works
 - backend verification logic for PDFs is still weaker than for original uploads/images
 
-### 4. Admin flow and 3-person flow are separate
-- this is intentional for now
-- but the UX and architecture may still need refinement depending on the desired security model
+### 4. AI fingerprinting is phase-1 only
+- current implementation is not a trained model yet
+- it is a lightweight visual fingerprint service intended to be safe and practical
+- it is image-only
+- it was intentionally stored inside `metadata_json` to avoid disturbing the DB
 
 ### 5. Dashboard stats are simple
 - `verifiedToday` is currently based on document creation count for today
@@ -536,6 +546,7 @@ This section matters because it captures the plan, not just the files.
 - use Firebase Google auth for system entry
 - use Firebase custom claims for admin gating
 - support both images and PDFs in registration/verification
+- add an AI-backed fingerprint layer without breaking the existing DB
 - keep local development simple enough to run on one machine
 
 ### UX goals
@@ -558,6 +569,7 @@ If development continues from here, this is the clean next sequence:
 
 ### Phase 2: Tighten verification logic
 - define proper verification behavior for PDFs
+- decide whether the lightweight AI fingerprint should evolve into a trained model or remain a robust fallback signal
 - decide whether verification should use:
   - record ID
   - QR payload

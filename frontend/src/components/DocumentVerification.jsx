@@ -44,7 +44,15 @@ const DocumentVerification = ({ language }) => {
       fraudWarning: 'This document appears to be fraudulent',
       genuine: 'This is an official Ministry of Lands document',
       verifiedAt: 'Verified at',
-      verifier: 'Verified by'
+      verifier: 'Verified by',
+      aiFingerprint: 'AI Fingerprint Check',
+      aiSimilarity: 'Similarity',
+      aiMatched: 'AI visual fingerprint matches registered image',
+      aiMismatch: 'AI visual fingerprint does not confidently match',
+      stegoFound: 'Hidden trust payload found',
+      stegoMissing: 'No hidden trust payload detected',
+      fullHash: 'Full Document Hash',
+      aiSignature: 'AI Signature'
     },
     sw: {
       title: 'Uthibitisho wa Hati',
@@ -74,7 +82,15 @@ const DocumentVerification = ({ language }) => {
       fraudWarning: 'Hati hii inaonekana kuwa bandia',
       genuine: 'Hii ni hati rasmi ya Wizara ya Ardhi',
       verifiedAt: 'Imethibitishwa',
-      verifier: 'Imethibitishwa Na'
+      verifier: 'Imethibitishwa Na',
+      aiFingerprint: 'Ukaguzi wa AI Fingerprint',
+      aiSimilarity: 'Ufanano',
+      aiMatched: 'Alama ya AI inalingana na hati iliyosajiliwa',
+      aiMismatch: 'Alama ya AI hailingani kwa uhakika',
+      stegoFound: 'Kifurushi fiche cha uaminifu kimepatikana',
+      stegoMissing: 'Hakuna data fiche ya uaminifu iliyopatikana',
+      fullHash: 'Hash Kamili ya Hati',
+      aiSignature: 'Saini ya AI'
     }
   };
 
@@ -422,6 +438,84 @@ const DocumentVerification = ({ language }) => {
                   </span>
                 </div>
               </div>
+
+              {/* Steganography Status */}
+              <div className={`p-3 rounded-xl ${
+                result.has_steganography ? 'bg-emerald-50' : 'bg-gray-50'
+              }`}>
+                <div className="flex items-center space-x-2">
+                  <Fingerprint className={`h-5 w-5 ${
+                    result.has_steganography ? 'text-emerald-600' : 'text-gray-500'
+                  }`} />
+                  <span className={`text-sm ${
+                    result.has_steganography ? 'text-emerald-700' : 'text-gray-600'
+                  }`}>
+                    {result.has_steganography ? t.stegoFound : t.stegoMissing}
+                  </span>
+                </div>
+                {result.stego_data && (
+                  <div className="mt-3 space-y-2 text-xs text-gray-600">
+                    {result.stego_data.full_document_hash && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500">{t.fullHash}</span>
+                        <span className="font-mono text-right break-all">
+                          {result.stego_data.full_document_hash}
+                        </span>
+                      </div>
+                    )}
+                    {result.stego_data.ai_signature && (
+                      <div className="flex justify-between gap-4">
+                        <span className="text-gray-500">{t.aiSignature}</span>
+                        <span className="font-mono text-right break-all">
+                          {result.stego_data.ai_signature}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* AI Verification Status */}
+              {result.ai_verification?.available && (
+                <div className={`p-4 rounded-xl border ${
+                  result.ai_verification.match
+                    ? 'bg-blue-50 border-blue-200'
+                    : 'bg-amber-50 border-amber-200'
+                }`}>
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <div className="font-medium text-gray-800">{t.aiFingerprint}</div>
+                      <div className={`text-sm mt-1 ${
+                        result.ai_verification.match ? 'text-blue-700' : 'text-amber-700'
+                      }`}>
+                        {result.ai_verification.match ? t.aiMatched : t.aiMismatch}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs uppercase tracking-wide text-gray-500">{t.aiSimilarity}</div>
+                      <div className="text-2xl font-semibold text-gray-900">
+                        {result.ai_verification.similarity != null
+                          ? `${(result.ai_verification.similarity * 100).toFixed(0)}%`
+                          : '--'}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-3 w-full bg-white/70 rounded-full h-2.5">
+                    <div
+                      className={`h-2.5 rounded-full ${
+                        result.ai_verification.match ? 'bg-blue-500' : 'bg-amber-500'
+                      }`}
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(100, (result.ai_verification.similarity || 0) * 100)
+                        )}%`
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Verification Timestamp */}
               <div className="flex items-center justify-between text-xs text-gray-400 pt-2">

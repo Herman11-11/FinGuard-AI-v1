@@ -47,6 +47,7 @@ const DocumentRegistration = ({ language }) => {
       fingerprint: 'Digital Fingerprint Generated',
       success: 'Document registered successfully!',
       hashValue: 'SHA-256 Hash',
+      aiFingerprint: 'AI Fingerprint Signature',
       recordId: 'Record ID',
       print: 'Print QR Code',
       registerAnother: 'Register Another',
@@ -75,6 +76,7 @@ const DocumentRegistration = ({ language }) => {
       fingerprint: 'Alama ya Dijitali Imetengenezwa',
       success: 'Hati imesajiliwa kikamilifu!',
       hashValue: 'Alama SHA-256',
+      aiFingerprint: 'Saini ya AI Fingerprint',
       recordId: 'Namba ya Rekodi',
       print: 'Chapisha QR Code',
       registerAnother: 'Sajili Nyingine',
@@ -472,6 +474,18 @@ const DocumentRegistration = ({ language }) => {
                 <p className="text-sm text-gray-500">{t.hashValue}</p>
                 <p className="font-mono text-xs bg-white p-3 rounded-lg border divider-soft break-all">{result.fingerprint}</p>
               </div>
+              {result.ai_signature && (
+                <div>
+                  <p className="text-sm text-gray-500">{t.aiFingerprint}</p>
+                  <p className="font-mono text-xs bg-white p-3 rounded-lg border divider-soft break-all">
+                    {result.ai_signature}
+                  </p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    {result.ai_algorithm || 'AI fingerprint'}
+                    {result.ai_embedding_dim ? ` • ${result.ai_embedding_dim} dimensions` : ''}
+                  </p>
+                </div>
+              )}
               
               {/* Mini QR for printing */}
               {result.mini_qr && (
