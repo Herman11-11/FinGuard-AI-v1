@@ -101,6 +101,9 @@ http://localhost:8000/health
 http://localhost:8000/api/health
 ```
 
+Current local backend dependency note:
+- `backend/venv` needs `pypdfium2` so PDFs can render page 1 and go through the trained AI fingerprint path
+
 ## Frontend
 From `frontend/`:
 
@@ -420,9 +423,9 @@ Relevant files:
 - `frontend/src/components/DocumentVerification.jsx`
 
 ### What is still not fully solved
-- verifying a PDF semantically is still limited by backend logic
-- the current backend still mainly trusts exact file hash or image steganography
-- PDF verification may need its own strategy later
+- PDFs now go through AI by rendering the first page to an image internally
+- PDF steganography is still not implemented; hidden payload extraction remains image-only
+- multi-page PDFs are currently represented by page 1 for AI fingerprinting
 
 ---
 
@@ -507,15 +510,22 @@ At the time of writing:
 - the file has grown into a multi-responsibility module
 - it should eventually be split/refactored
 
-### 3. PDF verification semantics are incomplete
-- preview works
-- backend verification logic for PDFs is still weaker than for original uploads/images
+### 3. PDF verification is now first-page based
+- PDFs render page 1 internally and run through the trained AI fingerprint pipeline
+- exact PDF hash is still stored and checked
+- PDF steganography is still not supported
+- if stronger multi-page semantics are needed later, this should be extended beyond page 1
 
-### 4. AI fingerprinting is phase-1 only
-- current implementation is not a trained model yet
-- it is a lightweight visual fingerprint service intended to be safe and practical
-- it is image-only
-- it was intentionally stored inside `metadata_json` to avoid disturbing the DB
+### 4. AI fingerprinting is now trained-model based
+- backend uses the trained ResNet18 embedding model through the external ML venv
+- AI fingerprints are stored inside `metadata_json` to avoid disturbing the DB schema
+- registration/verification use:
+  - exact file hash
+  - trained AI signature/embedding
+  - image steganography where available
+- required local pieces:
+  - `/Users/macbookpro/GitHub/ml-venv/bin/python`
+  - `ml/models/document_embedding_resnet18.pt`
 
 ### 5. Dashboard stats are simple
 - `verifiedToday` is currently based on document creation count for today

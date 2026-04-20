@@ -12,6 +12,24 @@ import os
 
 class QRService:
     @staticmethod
+    def _verification_portal_base() -> str:
+        return os.getenv("FINGUARD_VERIFY_URL", "https://verify.lands.go.tz/verify")
+
+    @classmethod
+    def build_qr_payload(cls, record_id: str) -> str:
+        portal_base = cls._verification_portal_base()
+        return "\n".join([
+            "MINISTRY OF LANDS - TANZANIA",
+            "Official Title Deed Verification",
+            f"Record ID: {record_id}",
+            "",
+            "How to verify:",
+            "1. Open the verification portal",
+            f"2. Go to: {portal_base}",
+            f"3. Enter Record ID: {record_id}",
+        ])
+
+    @staticmethod
     def generate_document_qr(document_data: dict, fingerprint: str) -> str:
         """
         Generate a styled QR code for a land document
@@ -19,18 +37,18 @@ class QRService:
         Returns: base64 encoded image
         """
         # Create QR data payload
-        qr_data = {
-            "record_id": document_data.get('record_id'),
-            "owner": document_data.get('owner'),
-            "plot": document_data.get('plot_number'),
-            "location": document_data.get('location'),
-            "fingerprint": fingerprint[:16] + "...",  # Truncated for QR
-            "issued": datetime.now().isoformat(),
-            "ministry": "Ministry of Lands - Tanzania"
-        }
-        
-        # Convert to JSON string
-        json_str = json.dumps(qr_data)
+        record_id = document_data.get('record_id') or "UNKNOWN"
+        qr_text = "\n".join([
+            "MINISTRY OF LANDS - TANZANIA",
+            "Official Land Record",
+            f"Record ID: {record_id}",
+            f"Owner: {document_data.get('owner', 'N/A')}",
+            f"Plot: {document_data.get('plot_number', 'N/A')}",
+            "",
+            "Verification:",
+            f"Portal: {QRService._verification_portal_base()}",
+            f"Fingerprint Ref: {fingerprint[:16]}...",
+        ])
         
         # Create QR code instance
         qr = qrcode.QRCode(
@@ -41,7 +59,7 @@ class QRService:
         )
         
         # Add data
-        qr.add_data(json_str)
+        qr.add_data(qr_text)
         qr.make(fit=True)
         
         # Create styled image
@@ -88,9 +106,7 @@ class QRService:
     @staticmethod
     def generate_verification_url(record_id: str) -> str:
         """Generate a verification URL for QR code"""
-        base_url = "https://verify.lands.go.tz"  # In production
-        # For demo, use localhost
-        return f"http://localhost:5173/verify?doc={record_id}"
+        return f"{QRService._verification_portal_base()}?doc={record_id}"
     
     @staticmethod
     def generate_mini_qr(record_id: str) -> str:
@@ -102,8 +118,7 @@ class QRService:
             border=2,
         )
         
-        verification_url = QRService.generate_verification_url(record_id)
-        qr.add_data(verification_url)
+        qr.add_data(QRService.build_qr_payload(record_id))
         qr.make(fit=True)
         
         img = qr.make_image(fill_color="black", back_color="white")

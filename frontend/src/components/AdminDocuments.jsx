@@ -24,6 +24,7 @@ const AdminDocuments = () => {
   const [accessGranted, setAccessGranted] = useState(false);
   const [officerPasswords, setOfficerPasswords] = useState({});
   const [authLoading, setAuthLoading] = useState(false);
+  const [deletingRecordId, setDeletingRecordId] = useState('');
 
   const getFreshToken = async () => {
     const currentUser = auth.currentUser;
@@ -225,6 +226,28 @@ const AdminDocuments = () => {
     }
   };
 
+  const handleDeleteDocument = async (recordId) => {
+    const confirmed = window.confirm(`Delete document ${recordId}? This action cannot be undone.`);
+    if (!confirmed) return;
+
+    setDeletingRecordId(recordId);
+    setError('');
+    try {
+      const bearerToken = await getFreshToken();
+      await axios.delete(`/api/admin/documents/${recordId}`, {
+        headers: { Authorization: `Bearer ${bearerToken}` }
+      });
+
+      setDocs((prev) => prev.filter((doc) => doc.record_id !== recordId));
+      setSelectedDoc((prev) => (prev?.record_id === recordId ? null : prev));
+      await fetchLogs(bearerToken);
+    } catch (err) {
+      setError(err?.response?.data?.detail || 'Failed to delete document');
+    } finally {
+      setDeletingRecordId('');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-6">
@@ -413,6 +436,7 @@ const AdminDocuments = () => {
                         <th className="py-2">Location</th>
                         <th className="py-2">Region</th>
                         <th className="py-2">Created</th>
+                        <th className="py-2">Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -442,6 +466,18 @@ const AdminDocuments = () => {
                           <td className="py-2">{d.location}</td>
                           <td className="py-2">{d.region}</td>
                           <td className="py-2 text-gray-500">{d.created_at}</td>
+                          <td className="py-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteDocument(d.record_id);
+                              }}
+                              disabled={deletingRecordId === d.record_id}
+                              className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                            >
+                              {deletingRecordId === d.record_id ? 'Deleting...' : 'Delete'}
+                            </button>
+                          </td>
                         </tr>
                       ))}
                     </tbody>

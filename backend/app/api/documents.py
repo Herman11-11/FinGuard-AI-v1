@@ -6,6 +6,7 @@ import json
 import uuid
 from typing import Optional
 from services.pdf_service import PDFService
+from services.pdf_render_service import PDFRenderService
 from fastapi.responses import Response
 import os
 
@@ -37,6 +38,69 @@ def log_verification_event(
     )
     db.add(event)
     db.commit()
+
+
+def build_ai_input(content: bytes, content_type: str | None) -> bytes | None:
+    if content_type and content_type.startswith("image/"):
+        return content
+    if content_type == "application/pdf":
+        return PDFRenderService.render_first_page(content)
+    return None
+
+
+def build_pdf_signature(content: bytes, content_type: str | None) -> dict | None:
+    if content_type != "application/pdf":
+        return None
+    return PDFRenderService.build_text_signature(content)
+
+
+def find_document_by_pdf_signature(db: Session, pdf_signature: dict | None) -> Document | None:
+    if not pdf_signature:
+        return None
+
+    target_signature = pdf_signature.get("signature")
+    if not target_signature:
+        return None
+
+    for candidate_doc in db.query(Document).all():
+        metadata = candidate_doc.metadata_json if isinstance(candidate_doc.metadata_json, dict) else {}
+        stored_pdf = metadata.get("pdf_signature") if isinstance(metadata, dict) else None
+        if isinstance(stored_pdf, dict) and stored_pdf.get("signature") == target_signature:
+            return candidate_doc
+
+    return None
+
+
+def pdf_signature_matches_document(doc: Document | None, pdf_signature: dict | None) -> bool:
+    if not doc or not pdf_signature:
+        return False
+    metadata = doc.metadata_json if isinstance(doc.metadata_json, dict) else {}
+    stored_pdf = metadata.get("pdf_signature") if isinstance(metadata, dict) else None
+    return isinstance(stored_pdf, dict) and stored_pdf.get("signature") == pdf_signature.get("signature")
+
+
+def build_failed_verification_reason(
+    *,
+    content_type: str | None,
+    stego_data: dict | None,
+    ai_verification: dict,
+) -> str:
+    file_label = "pdf" if content_type == "application/pdf" else "image" if content_type and content_type.startswith("image/") else (content_type or "unknown")
+    parts = [f"Verification failed for {file_label} upload"]
+
+    if stego_data:
+        parts.append(f"stego_record={stego_data.get('record_id')}")
+    else:
+        parts.append("stego=none")
+
+    if ai_verification.get("available"):
+        similarity = ai_verification.get("similarity")
+        parts.append(f"ai_similarity={similarity}")
+        parts.append(f"ai_match={ai_verification.get('match')}")
+    else:
+        parts.append(f"ai={ai_verification.get('reason', 'unavailable')}")
+
+    return " | ".join(parts)
 
 @router.post("/api/documents/register")
 async def register_document(
@@ -73,9 +137,23 @@ async def register_document(
         doc_data["metadata_hash"] = data_hash
 
         ai_fingerprint = None
-        if file.content_type and file.content_type.startswith('image/'):
+        pdf_signature = None
+        ai_input = None
+        try:
+            ai_input = build_ai_input(content, file.content_type)
+        except Exception as e:
+            print(f"⚠️ Failed to prepare file for AI fingerprinting: {e}")
+
+        try:
+            pdf_signature = build_pdf_signature(content, file.content_type)
+            if pdf_signature:
+                doc_data["pdf_signature"] = pdf_signature
+        except Exception as e:
+            print(f"⚠️ Failed to build PDF signature: {e}")
+
+        if ai_input is not None:
             try:
-                ai_fingerprint = AIFingerprintService.generate_fingerprint(content)
+                ai_fingerprint = AIFingerprintService.generate_fingerprint(ai_input)
                 doc_data["ai_fingerprint"] = ai_fingerprint
             except Exception as e:
                 print(f"⚠️ AI fingerprint generation failed: {e}")
@@ -194,11 +272,12 @@ async def verify_document(
     try:
         content = await file.read()
         file_hash = hashlib.sha256(content).hexdigest()
-        ai_candidate = None
+        pdf_signature = None
         ai_verification = {
             "available": False,
             "match": False,
             "similarity": None,
+            "reason": "not evaluated",
         }
 
         # First check by file hash
@@ -215,22 +294,23 @@ async def verify_document(
             except Exception as e:
                 print(f"Steganography extraction failed: {e}")
 
-        if file.content_type and file.content_type.startswith('image/'):
-            try:
-                ai_candidate = AIFingerprintService.generate_fingerprint(content)
-                if doc and isinstance(doc.metadata_json, dict):
-                    ai_verification = AIFingerprintService.compare_fingerprints(
-                        doc.metadata_json.get("ai_fingerprint"),
-                        ai_candidate,
-                    )
-            except Exception as e:
-                print(f"AI fingerprint verification failed: {e}")
+        try:
+            pdf_signature = build_pdf_signature(content, file.content_type)
+            if not doc:
+                doc = find_document_by_pdf_signature(db, pdf_signature)
+        except Exception as e:
+            print(f"PDF signature generation failed: {e}")
 
         if not doc:
+            failure_reason = build_failed_verification_reason(
+                content_type=file.content_type,
+                stego_data=stego_data,
+                ai_verification=ai_verification,
+            )
             log_verification_event(
                 db,
-                document_id=stego_data.get("record_id") if stego_data else "UNMATCHED",
-                reason="Document verification failed",
+                document_id=stego_data.get("record_id") if stego_data else ("UNMATCHED-PDF" if file.content_type == "application/pdf" else "UNMATCHED"),
+                reason=failure_reason,
                 status="fraudulent",
             )
             return {
@@ -239,6 +319,7 @@ async def verify_document(
                 "has_steganography": stego_data is not None,
                 "stego_data": stego_data,
                 "ai_verification": ai_verification,
+                "pdf_signature": pdf_signature,
                 "details": {
                     "hash_match": False,
                     "tamper_detected": True,
@@ -252,19 +333,52 @@ async def verify_document(
                 }
             }
 
+        ai_input = None
+        try:
+            ai_input = build_ai_input(content, file.content_type)
+        except Exception as e:
+            print(f"AI fingerprint input preparation failed: {e}")
+
+        if ai_input is not None and isinstance(doc.metadata_json, dict) and doc.metadata_json.get("ai_fingerprint"):
+            try:
+                ai_candidate = AIFingerprintService.generate_fingerprint(ai_input)
+                ai_verification = AIFingerprintService.compare_fingerprints(
+                    doc.metadata_json.get("ai_fingerprint"),
+                    ai_candidate,
+                )
+            except Exception as e:
+                print(f"AI fingerprint verification failed: {e}")
+
         hash_match = doc.file_hash == file_hash
+        pdf_match = pdf_signature_matches_document(doc, pdf_signature)
         ai_match = ai_verification.get("match", False)
-        confidence = 0.98 if hash_match else (0.9 if ai_match or stego_data else 0.72)
+        if hash_match:
+            confidence = 0.98
+        elif pdf_match:
+            confidence = 0.94
+        elif stego_data:
+            confidence = 0.9 if ai_match else 0.82
+        else:
+            confidence = 0.76 if ai_match else 0.58
 
         return {
-            "is_authentic": True,
+            "is_authentic": bool(hash_match or pdf_match or stego_data),
             "confidence": confidence,
             "has_steganography": stego_data is not None,
             "stego_data": stego_data,
             "ai_verification": ai_verification,
+            "pdf_signature": pdf_signature,
             "details": {
                 "hash_match": hash_match,
-                "tamper_detected": not hash_match and not ai_match,
+                "pdf_signature_match": pdf_match,
+                "tamper_detected": not hash_match and not pdf_match and not stego_data and not ai_match,
+                "verification_basis": (
+                    "hash"
+                    if hash_match else "pdf_signature"
+                    if pdf_match else "steganography"
+                    if stego_data else "ai_support"
+                    if ai_match else "none"
+                ),
                 "issue_date": doc.created_at.date().isoformat() if doc.created_at else None,
                 "owner": doc.owner_name,
                 "plot": doc.plot_number,
@@ -364,6 +478,29 @@ async def admin_view_documents(
             "file_hash": doc.file_hash[:20] + "..."
         })
     return {"documents": result}
+
+
+@router.delete("/api/admin/documents/{record_id}")
+async def admin_delete_document(
+    record_id: str,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db)
+):
+    require_firebase_admin(authorization)
+    deleted = DocumentCRUD.delete_document(db, record_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    stego_suffix = record_id.replace("LAND-", "", 1)
+    stego_filename = f"stego_{stego_suffix}.png"
+    stego_path = os.path.join("stego_images", stego_filename)
+    if os.path.exists(stego_path):
+        try:
+            os.remove(stego_path)
+        except OSError as exc:
+            print(f"⚠️ Failed to remove stego image {stego_path}: {exc}")
+
+    return {"success": True, "record_id": record_id}
 
 
 @router.get("/api/admin/audit-logs")

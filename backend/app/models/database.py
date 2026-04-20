@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from sqlalchemy import create_engine, Column, String, Integer, DateTime, JSON, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -6,7 +8,8 @@ import os
 from services.encryption import EncryptionService
 
 # Database setup
-DATABASE_URL = "sqlite:///./finguard.db"
+BASE_DIR = Path(__file__).resolve().parents[2]
+DATABASE_URL = f"sqlite:///{BASE_DIR / 'finguard.db'}"
 
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

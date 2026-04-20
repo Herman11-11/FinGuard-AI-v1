@@ -49,6 +49,9 @@ const DocumentVerification = ({ language }) => {
       aiSimilarity: 'Similarity',
       aiMatched: 'AI visual fingerprint matches registered image',
       aiMismatch: 'AI visual fingerprint does not confidently match',
+      pdfSignature: 'PDF Text Signature',
+      pdfSignatureMatched: 'PDF content signature matches the registered document',
+      pdfSignatureMismatch: 'PDF content signature does not match a registered document',
       stegoFound: 'Hidden trust payload found',
       stegoMissing: 'No hidden trust payload detected',
       fullHash: 'Full Document Hash',
@@ -87,6 +90,9 @@ const DocumentVerification = ({ language }) => {
       aiSimilarity: 'Ufanano',
       aiMatched: 'Alama ya AI inalingana na hati iliyosajiliwa',
       aiMismatch: 'Alama ya AI hailingani kwa uhakika',
+      pdfSignature: 'Saini ya Maudhui ya PDF',
+      pdfSignatureMatched: 'Saini ya maudhui ya PDF inalingana na hati iliyosajiliwa',
+      pdfSignatureMismatch: 'Saini ya maudhui ya PDF hailingani na hati iliyosajiliwa',
       stegoFound: 'Kifurushi fiche cha uaminifu kimepatikana',
       stegoMissing: 'Hakuna data fiche ya uaminifu iliyopatikana',
       fullHash: 'Hash Kamili ya Hati',
@@ -438,6 +444,23 @@ const DocumentVerification = ({ language }) => {
                   </span>
                 </div>
               </div>
+
+              {result.pdf_signature && (
+                <div className={`p-3 rounded-xl ${
+                  result.details?.pdf_signature_match ? 'bg-indigo-50' : 'bg-amber-50'
+                }`}>
+                  <div className="flex items-center space-x-2">
+                    <FileText className={`h-5 w-5 ${
+                      result.details?.pdf_signature_match ? 'text-indigo-600' : 'text-amber-600'
+                    }`} />
+                    <span className={`text-sm ${
+                      result.details?.pdf_signature_match ? 'text-indigo-700' : 'text-amber-700'
+                    }`}>
+                      {result.details?.pdf_signature_match ? t.pdfSignatureMatched : t.pdfSignatureMismatch}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Steganography Status */}
               <div className={`p-3 rounded-xl ${
