@@ -16,9 +16,19 @@ from api.auth import router as auth_router
 
 app = FastAPI(title="FinGuard-AI", version="1.0.0")
 
+default_origins = [
+    "http://localhost:5173",
+]
+extra_origins = [
+    origin.strip()
+    for origin in os.getenv("FINGUARD_CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+allowed_origins = default_origins + extra_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

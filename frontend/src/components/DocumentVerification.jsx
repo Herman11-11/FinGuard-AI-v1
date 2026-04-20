@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Shield, CheckCircle, XCircle, AlertTriangle, Fingerprint, Scan, Upload, Clock, Hash, FileText } from 'lucide-react';
-import axios from 'axios';
+import axios from '../lib/api';
 
 const DocumentVerification = ({ language }) => {
   const [file, setFile] = useState(null);

@@ -4,6 +4,7 @@ import json
 import math
 import os
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
@@ -28,7 +29,10 @@ class AIFingerprintService:
         override = os.getenv("FINGUARD_ML_PYTHON")
         if override:
             return Path(override)
-        return cls._project_root().parent / "ml-venv" / "bin" / "python"
+        local_ml_python = cls._project_root().parent / "ml-venv" / "bin" / "python"
+        if local_ml_python.exists():
+            return local_ml_python
+        return Path(sys.executable)
 
     @classmethod
     def _infer_script(cls) -> Path:

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Shield, Fingerprint, Users, CheckCircle, XCircle, AlertTriangle, Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
+import axios from '../lib/api';
 
 const ThreePersonAuth = ({ language }) => {
   const [step, setStep] = useState(1); // 1: request, 2: approvals, 3: access

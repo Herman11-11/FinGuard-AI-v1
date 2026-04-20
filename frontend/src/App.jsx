@@ -8,6 +8,7 @@ import AdminDocuments from './components/AdminDocuments';
 import Login from './components/Login';
 import { auth, provider, signInWithPopup, signOut } from './firebase';
 import { onAuthStateChanged, getRedirectResult, signInWithRedirect, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { apiUrl } from './lib/api';
 
 const AppShell = () => {
   const [language, setLanguage] = useState('en');
@@ -80,6 +81,7 @@ const AppShell = () => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
       setAuthReady(true);
+      setAuthLoading(false);
       void persistUserToken(u);
     });
 
@@ -91,12 +93,14 @@ const AppShell = () => {
       }
     }).catch(() => {
       setAuthError('Sign-in failed. Please try again.');
+    }).finally(() => {
+      setAuthLoading(false);
     });
 
     let mounted = true;
     const checkHealth = async () => {
       try {
-        const response = await fetch('/api/health');
+        const response = await fetch(apiUrl('/api/health'));
         if (!mounted) return;
         setSystemStatus(response.ok ? 'online' : 'offline');
       } catch (err) {
@@ -135,12 +139,25 @@ const AppShell = () => {
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthLoading(true);
+
+    const popupTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('popup-timeout')), 7000);
+    });
+
     try {
-      await signInWithPopup(auth, provider);
+      await Promise.race([
+        signInWithPopup(auth, provider),
+        popupTimeout,
+      ]);
     } catch (err) {
       console.error('Firebase Google sign-in failed:', err);
-      if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/popup-closed-by-user') {
+      if (
+        err?.message === 'popup-timeout' ||
+        err?.code === 'auth/popup-blocked' ||
+        err?.code === 'auth/popup-closed-by-user'
+      ) {
         await signInWithRedirect(auth, provider);
+        return;
       } else if (err?.code === 'auth/unauthorized-domain') {
         setAuthError('This domain is not authorized in Firebase. Use http://localhost:5173 or add 127.0.0.1 to Authorized Domains.');
       } else if (err?.code === 'auth/operation-not-allowed') {

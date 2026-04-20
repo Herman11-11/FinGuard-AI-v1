@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import axios from '../lib/api';
 import { auth, provider, signInWithPopup, signOut, signInWithEmailAndPassword } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 

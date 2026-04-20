@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, CheckCircle, AlertTriangle, Users, Clock } from 'lucide-react';
-import axios from 'axios';
+import axios from '../lib/api';
 
 const Dashboard = ({ language }) => {
   const [stats, setStats] = useState({

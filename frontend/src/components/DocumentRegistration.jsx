@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Upload, FileText, Fingerprint, Shield, AlertCircle, Scan, Download, Printer } from 'lucide-react';
-import axios from 'axios';
+import axios from '../lib/api';
 
 const DocumentRegistration = ({ language }) => {
   const [formData, setFormData] = useState({
