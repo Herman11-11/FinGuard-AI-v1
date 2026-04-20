@@ -62,26 +62,32 @@ const AppShell = () => {
 
     setPersistence(auth, browserLocalPersistence).catch(() => {});
 
-    const unsub = onAuthStateChanged(auth, async (u) => {
-      setUser(u);
-      if (u) {
+    const persistUserToken = async (u) => {
+      if (!u) {
+        localStorage.removeItem('finguard-token');
+        localStorage.removeItem('finguard-email');
+        return;
+      }
+      try {
         const idToken = await u.getIdToken();
         localStorage.setItem('finguard-token', idToken);
         localStorage.setItem('finguard-email', u.email || '');
-      } else {
-        localStorage.removeItem('finguard-token');
-        localStorage.removeItem('finguard-email');
+      } catch (err) {
+        console.error('Failed to persist auth token:', err);
       }
+    };
+
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u);
       setAuthReady(true);
+      void persistUserToken(u);
     });
 
     // Handle redirect login (fallback if popup blocked)
-    getRedirectResult(auth).then(async (result) => {
+    getRedirectResult(auth).then((result) => {
       if (result?.user) {
         setUser(result.user);
-        const idToken = await result.user.getIdToken();
-        localStorage.setItem('finguard-token', idToken);
-        localStorage.setItem('finguard-email', result.user.email || '');
+        void persistUserToken(result.user);
       }
     }).catch(() => {
       setAuthError('Sign-in failed. Please try again.');
@@ -130,14 +136,7 @@ const AppShell = () => {
     setAuthError('');
     setAuthLoading(true);
     try {
-      const result = await signInWithPopup(auth, provider);
-      const u = result.user || auth.currentUser;
-      setUser(u);
-      if (u) {
-        const idToken = await u.getIdToken();
-        localStorage.setItem('finguard-token', idToken);
-        localStorage.setItem('finguard-email', u.email || '');
-      }
+      await signInWithPopup(auth, provider);
     } catch (err) {
       console.error('Firebase Google sign-in failed:', err);
       if (err?.code === 'auth/popup-blocked' || err?.code === 'auth/popup-closed-by-user') {
