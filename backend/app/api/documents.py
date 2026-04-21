@@ -5,16 +5,21 @@ import hashlib
 import json
 import uuid
 from typing import Optional
-from Services.pdf_service import PDFService
+try:
+    from services.pdf_service import PDFService
+    from services.qr_service import QRService
+    from services.steganography import SteganographyService
+except ModuleNotFoundError:
+    from Services.pdf_service import PDFService
+    from Services.qr_service import QRService
+    from Services.steganography import SteganographyService
 from services.pdf_render_service import PDFRenderService
 from fastapi.responses import Response
 import os
 
-from Services.qr_service import QRService
 from models.database import get_db, Document, AccessLog
 from api.auth import require_firebase_admin
 from crud.documents import DocumentCRUD
-from Services.steganography import SteganographyService
 from services.ai_fingerprint_service import AIFingerprintService
 
 router = APIRouter()

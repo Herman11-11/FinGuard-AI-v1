@@ -5,8 +5,12 @@ import hashlib
 import uuid
 
 from models.database import get_db, AccessLog, Document, Officer, User
-from Services.auth_token import sign, verify
-from Services.firebase_admin import verify_id_token
+try:
+    from services.auth_token import sign, verify
+    from services.firebase_admin import verify_id_token
+except ModuleNotFoundError:
+    from Services.auth_token import sign, verify
+    from Services.firebase_admin import verify_id_token
 
 router = APIRouter()
 

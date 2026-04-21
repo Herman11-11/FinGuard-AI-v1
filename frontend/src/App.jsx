@@ -20,7 +20,6 @@ const AppShell = () => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
-  const [redirectResolved, setRedirectResolved] = useState(false);
 
   const translations = {
     en: {
@@ -62,8 +61,6 @@ const AppShell = () => {
       document.documentElement.classList.add('dark');
     }
 
-    setPersistence(auth, browserLocalPersistence).catch(() => {});
-
     const persistUserToken = async (u) => {
       if (!u) {
         localStorage.removeItem('finguard-token');
@@ -79,26 +76,40 @@ const AppShell = () => {
       }
     };
 
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u);
-      setAuthLoading(false);
-      void persistUserToken(u);
-    });
-
-    // Handle redirect login (fallback if popup blocked)
-    getRedirectResult(auth).then((result) => {
-      if (result?.user) {
-        setUser(result.user);
-        void persistUserToken(result.user);
-      }
-    }).catch(() => {
-      setAuthError('Sign-in failed. Please try again.');
-    }).finally(() => {
-      setRedirectResolved(true);
-      setAuthLoading(false);
-    });
-
+    let unsub = () => {};
     let mounted = true;
+
+    const initAuth = async () => {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (err) {
+        console.error('Failed to set Firebase persistence:', err);
+      }
+
+      try {
+        const result = await getRedirectResult(auth);
+        if (result?.user && mounted) {
+          setUser(result.user);
+          await persistUserToken(result.user);
+        }
+      } catch (err) {
+        console.error('Redirect sign-in resolution failed:', err);
+        if (mounted) {
+          setAuthError(err?.message || 'Sign-in failed. Please try again.');
+        }
+      }
+
+      unsub = onAuthStateChanged(auth, (u) => {
+        if (!mounted) return;
+        setUser(u);
+        setAuthReady(true);
+        setAuthLoading(false);
+        void persistUserToken(u);
+      });
+    };
+
+    void initAuth();
+
     const checkHealth = async () => {
       try {
         const response = await fetch(apiUrl('/api/health'));
@@ -118,12 +129,6 @@ const AppShell = () => {
       unsub();
     };
   }, []);
-
-  useEffect(() => {
-    if (redirectResolved) {
-      setAuthReady(true);
-    }
-  }, [redirectResolved]);
 
   const toggleTheme = () => {
     const next = !darkMode;

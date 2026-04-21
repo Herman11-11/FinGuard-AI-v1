@@ -1,5 +1,8 @@
 import sys
-from Services.firebase_admin import set_admin_claim
+try:
+    from services.firebase_admin import set_admin_claim
+except ModuleNotFoundError:
+    from Services.firebase_admin import set_admin_claim
 
 
 def main():
