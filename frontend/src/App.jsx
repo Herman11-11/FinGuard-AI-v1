@@ -150,23 +150,6 @@ const AppShell = () => {
     } catch (err) {
       console.error('Failed to set Firebase persistence before sign-in:', err);
     }
-    const isHostedEnvironment =
-      typeof window !== 'undefined' &&
-      window.location.hostname !== 'localhost' &&
-      window.location.hostname !== '127.0.0.1';
-
-    if (isHostedEnvironment) {
-      try {
-        await signInWithRedirect(auth, provider);
-        return;
-      } catch (err) {
-        console.error('Firebase redirect sign-in failed:', err);
-        setAuthError(err?.message || 'Sign-in failed. Please try again.');
-        setAuthLoading(false);
-        return;
-      }
-    }
-
     const popupTimeout = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('popup-timeout')), 7000);
     });
@@ -183,8 +166,13 @@ const AppShell = () => {
         err?.code === 'auth/popup-blocked' ||
         err?.code === 'auth/popup-closed-by-user'
       ) {
-        await signInWithRedirect(auth, provider);
-        return;
+        try {
+          await signInWithRedirect(auth, provider);
+          return;
+        } catch (redirectErr) {
+          console.error('Firebase redirect sign-in failed:', redirectErr);
+          setAuthError(redirectErr?.message || 'Sign-in failed. Please try again.');
+        }
       } else if (err?.code === 'auth/unauthorized-domain') {
         setAuthError('This domain is not authorized in Firebase. Use http://localhost:5173 or add 127.0.0.1 to Authorized Domains.');
       } else if (err?.code === 'auth/operation-not-allowed') {
