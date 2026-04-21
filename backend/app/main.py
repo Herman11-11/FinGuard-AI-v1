@@ -18,6 +18,8 @@ app = FastAPI(title="FinGuard-AI", version="1.0.0")
 
 default_origins = [
     "http://localhost:5173",
+    "https://fin-guard-ai-v1.vercel.app",
+    "https://agent-69e623ee74343e46ff8238bc--finguard-ai-v1.netlify.app",
 ]
 extra_origins = [
     origin.strip()
