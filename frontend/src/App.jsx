@@ -145,6 +145,16 @@ const AppShell = () => {
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthLoading(true);
+    const persistUserToken = async (u) => {
+      if (!u) return;
+      try {
+        const idToken = await u.getIdToken();
+        localStorage.setItem('finguard-token', idToken);
+        localStorage.setItem('finguard-email', u.email || '');
+      } catch (tokenErr) {
+        console.error('Failed to persist auth token after sign-in:', tokenErr);
+      }
+    };
     try {
       await setPersistence(auth, browserLocalPersistence);
     } catch (err) {
@@ -155,10 +165,14 @@ const AppShell = () => {
     });
 
     try {
-      await Promise.race([
+      const result = await Promise.race([
         signInWithPopup(auth, provider),
         popupTimeout,
       ]);
+      if (result?.user) {
+        setUser(result.user);
+        await persistUserToken(result.user);
+      }
     } catch (err) {
       console.error('Firebase Google sign-in failed:', err);
       if (
