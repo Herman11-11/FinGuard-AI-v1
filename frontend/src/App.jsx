@@ -160,15 +160,8 @@ const AppShell = () => {
     } catch (err) {
       console.error('Failed to set Firebase persistence before sign-in:', err);
     }
-    const popupTimeout = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('popup-timeout')), 7000);
-    });
-
     try {
-      const result = await Promise.race([
-        signInWithPopup(auth, provider),
-        popupTimeout,
-      ]);
+      const result = await signInWithPopup(auth, provider);
       if (result?.user) {
         setUser(result.user);
         await persistUserToken(result.user);
@@ -176,9 +169,7 @@ const AppShell = () => {
     } catch (err) {
       console.error('Firebase Google sign-in failed:', err);
       if (
-        err?.message === 'popup-timeout' ||
-        err?.code === 'auth/popup-blocked' ||
-        err?.code === 'auth/popup-closed-by-user'
+        err?.code === 'auth/popup-blocked'
       ) {
         try {
           await signInWithRedirect(auth, provider);
