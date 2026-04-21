@@ -1,4 +1,5 @@
 import os
+import json
 import firebase_admin
 from firebase_admin import credentials, auth
 
@@ -8,6 +9,11 @@ _app = None
 def init_firebase():
     global _app
     if _app:
+        return _app
+    raw_json = os.getenv("FIREBASE_ADMIN_JSON")
+    if raw_json:
+        cred = credentials.Certificate(json.loads(raw_json))
+        _app = firebase_admin.initialize_app(cred)
         return _app
     key_path = os.getenv("FIREBASE_ADMIN_KEY", "backend/keys/firebase-admin.json")
     if not os.path.exists(key_path):
