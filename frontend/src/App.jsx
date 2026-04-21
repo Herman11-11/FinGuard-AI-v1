@@ -81,12 +81,6 @@ const AppShell = () => {
 
     const initAuth = async () => {
       try {
-        await setPersistence(auth, browserLocalPersistence);
-      } catch (err) {
-        console.error('Failed to set Firebase persistence:', err);
-      }
-
-      try {
         const result = await getRedirectResult(auth);
         if (result?.user && mounted) {
           setUser(result.user);
@@ -151,6 +145,11 @@ const AppShell = () => {
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthLoading(true);
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+    } catch (err) {
+      console.error('Failed to set Firebase persistence before sign-in:', err);
+    }
     const isHostedEnvironment =
       typeof window !== 'undefined' &&
       window.location.hostname !== 'localhost' &&
