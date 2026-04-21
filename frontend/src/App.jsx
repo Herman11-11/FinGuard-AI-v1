@@ -20,6 +20,7 @@ const AppShell = () => {
   const [user, setUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
+  const [redirectResolved, setRedirectResolved] = useState(false);
 
   const translations = {
     en: {
@@ -80,7 +81,6 @@ const AppShell = () => {
 
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u);
-      setAuthReady(true);
       setAuthLoading(false);
       void persistUserToken(u);
     });
@@ -94,6 +94,7 @@ const AppShell = () => {
     }).catch(() => {
       setAuthError('Sign-in failed. Please try again.');
     }).finally(() => {
+      setRedirectResolved(true);
       setAuthLoading(false);
     });
 
@@ -117,6 +118,12 @@ const AppShell = () => {
       unsub();
     };
   }, []);
+
+  useEffect(() => {
+    if (redirectResolved) {
+      setAuthReady(true);
+    }
+  }, [redirectResolved]);
 
   const toggleTheme = () => {
     const next = !darkMode;
