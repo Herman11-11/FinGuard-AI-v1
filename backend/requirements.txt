@@ -10,5 +10,8 @@ Pillow==11.3.0
 numpy==1.26.4
 opencv-python==4.11.0.86
 pypdfium2==5.7.0
-torch==2.2.2
-torchvision==0.17.2
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.2.2 ; platform_system == "Darwin"
+torchvision==0.17.2 ; platform_system == "Darwin"
+torch==2.2.2+cpu ; platform_system != "Darwin"
+torchvision==0.17.2+cpu ; platform_system != "Darwin"
