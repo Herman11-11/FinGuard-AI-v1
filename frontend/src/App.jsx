@@ -139,6 +139,22 @@ const AppShell = () => {
   const handleGoogleLogin = async () => {
     setAuthError('');
     setAuthLoading(true);
+    const isHostedEnvironment =
+      typeof window !== 'undefined' &&
+      window.location.hostname !== 'localhost' &&
+      window.location.hostname !== '127.0.0.1';
+
+    if (isHostedEnvironment) {
+      try {
+        await signInWithRedirect(auth, provider);
+        return;
+      } catch (err) {
+        console.error('Firebase redirect sign-in failed:', err);
+        setAuthError(err?.message || 'Sign-in failed. Please try again.');
+        setAuthLoading(false);
+        return;
+      }
+    }
 
     const popupTimeout = new Promise((_, reject) => {
       setTimeout(() => reject(new Error('popup-timeout')), 7000);
