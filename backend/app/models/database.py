@@ -5,7 +5,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
 import os
-from services.encryption import EncryptionService
+from Services.encryption import EncryptionService
 
 # Database setup
 BASE_DIR = Path(__file__).resolve().parents[2]
