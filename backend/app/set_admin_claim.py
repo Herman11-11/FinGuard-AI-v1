@@ -1,5 +1,5 @@
 import sys
-from services.firebase_admin import set_admin_claim
+from Services.firebase_admin import set_admin_claim
 
 
 def main():

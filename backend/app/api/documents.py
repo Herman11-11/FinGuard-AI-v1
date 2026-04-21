@@ -5,16 +5,16 @@ import hashlib
 import json
 import uuid
 from typing import Optional
-from services.pdf_service import PDFService
+from Services.pdf_service import PDFService
 from services.pdf_render_service import PDFRenderService
 from fastapi.responses import Response
 import os
 
-from services.qr_service import QRService
+from Services.qr_service import QRService
 from models.database import get_db, Document, AccessLog
 from api.auth import require_firebase_admin
 from crud.documents import DocumentCRUD
-from services.steganography import SteganographyService
+from Services.steganography import SteganographyService
 from services.ai_fingerprint_service import AIFingerprintService
 
 router = APIRouter()
