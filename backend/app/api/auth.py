@@ -5,8 +5,8 @@ import hashlib
 import uuid
 
 from models.database import get_db, AccessLog, Document, Officer, User
-from services.auth_token import sign, verify
-from services.firebase_admin import verify_id_token
+from Services.auth_token import sign, verify
+from Services.firebase_admin import verify_id_token
 
 router = APIRouter()
 
