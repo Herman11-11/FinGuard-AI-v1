@@ -5,6 +5,7 @@ import { colors, shadow, typography } from '../theme/tokens';
 const ITEMS = [
   { key: 'overview', label: 'Home' },
   { key: 'verify', label: 'Verify' },
+  { key: 'qr', label: 'Scan QR' },
   { key: 'legacy', label: 'Legacy' },
 ];
 

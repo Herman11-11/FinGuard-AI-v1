@@ -236,7 +236,9 @@ async def register_document(
 
 @router.get("/api/documents/search/{plot_number}")
 async def search_document(plot_number: str, db: Session = Depends(get_db)):
-    doc = DocumentCRUD.get_document_by_plot(db, plot_number)
+    doc = DocumentCRUD.get_document_by_record_id(db, plot_number)
+    if not doc:
+        doc = DocumentCRUD.get_document_by_plot(db, plot_number)
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
     
