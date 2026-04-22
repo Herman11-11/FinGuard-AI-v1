@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 import firebase_admin
 from firebase_admin import credentials, auth
 
@@ -10,11 +11,36 @@ def init_firebase():
     global _app
     if _app:
         return _app
+
+    raw_b64 = os.getenv("FIREBASE_ADMIN_JSON_B64")
+    if raw_b64:
+        decoded = base64.b64decode(raw_b64).decode("utf-8")
+        cred = credentials.Certificate(json.loads(decoded))
+        _app = firebase_admin.initialize_app(cred)
+        return _app
+
     raw_json = os.getenv("FIREBASE_ADMIN_JSON")
     if raw_json:
         cred = credentials.Certificate(json.loads(raw_json))
         _app = firebase_admin.initialize_app(cred)
         return _app
+
+    project_id = os.getenv("FIREBASE_PROJECT_ID")
+    client_email = os.getenv("FIREBASE_CLIENT_EMAIL")
+    private_key = os.getenv("FIREBASE_PRIVATE_KEY")
+    if project_id and client_email and private_key:
+        cred = credentials.Certificate(
+            {
+                "type": "service_account",
+                "project_id": project_id,
+                "client_email": client_email,
+                "private_key": private_key.replace("\\n", "\n"),
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        )
+        _app = firebase_admin.initialize_app(cred)
+        return _app
+
     key_path = os.getenv("FIREBASE_ADMIN_KEY", "backend/keys/firebase-admin.json")
     if not os.path.exists(key_path):
         # Try relative to repo root
