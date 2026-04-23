@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { colors, shadow, typography } from '../theme/tokens';
 
 export default function OfficialMark({ compact = false }) {
@@ -7,7 +7,11 @@ export default function OfficialMark({ compact = false }) {
     <View style={[styles.wrap, compact && styles.wrapCompact]}>
       <View style={[styles.seal, compact && styles.sealCompact]}>
         <View style={styles.innerRing}>
-          <Text style={[styles.sealText, compact && styles.sealTextCompact]}>TZ</Text>
+          <Image
+            source={require('../../assets/tanzania-coat-of-arms.png')}
+            style={[styles.sealImage, compact && styles.sealImageCompact]}
+            resizeMode="contain"
+          />
         </View>
       </View>
       <View style={styles.copy}>
@@ -52,14 +56,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'rgba(16,49,36,0.35)',
   },
-  sealText: {
-    color: '#fdfcf8',
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: 1,
+  sealImage: {
+    width: '84%',
+    height: '84%',
   },
-  sealTextCompact: {
-    fontSize: 15,
+  sealImageCompact: {
+    width: '82%',
+    height: '82%',
   },
   copy: {
     gap: 2,

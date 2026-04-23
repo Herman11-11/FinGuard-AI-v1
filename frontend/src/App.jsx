@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route, NavLink, useLocation, Navigate } from 'react-router-dom';
-import { Landmark, Shield, QrCode, Languages, LogOut, Menu, FileText, Moon, Sun, Database } from 'lucide-react';
+import { Landmark, QrCode, Languages, LogOut, Menu, FileText, Moon, Sun, Database } from 'lucide-react';
 import Dashboard from './components/Dashboard';
 import DocumentRegistration from './components/DocumentRegistration';
 import DocumentVerification from './components/DocumentVerification';
 import AdminDocuments from './components/AdminDocuments';
 import Login from './components/Login';
+import coatOfArms from './assets/tanzania-coat-of-arms.png';
 import { auth, provider, signInWithPopup, signOut } from './firebase';
 import { onAuthStateChanged, getRedirectResult, signInWithRedirect, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { apiUrl } from './lib/api';
@@ -218,7 +219,7 @@ const AppShell = () => {
       <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} sidebar text-white transition-all duration-300 shadow-2xl border-r border-green-900/40 flex flex-col`}>
         <div className="p-5 flex items-center justify-between border-b border-green-700/60">
           <div className="flex items-center space-x-2">
-            <Shield className="h-8 w-8" />
+            <img src={coatOfArms} alt="Tanzania Coat of Arms" className="h-9 w-9 object-contain" />
             {sidebarOpen && <span className="font-semibold text-lg tracking-wide">FinGuard-AI</span>}
           </div>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1 hover:bg-white/10 rounded-lg">

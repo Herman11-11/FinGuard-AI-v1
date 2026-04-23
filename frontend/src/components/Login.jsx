@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Shield, Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
+import { Lock, Mail, ArrowRight, Sparkles } from 'lucide-react';
+import coatOfArms from '../assets/tanzania-coat-of-arms.png';
 
 const Login = ({ onGoogleLogin, loading = false, error = '', language = 'en' }) => {
   const [loginMethod, setLoginMethod] = useState('google');
@@ -71,8 +72,8 @@ const Login = ({ onGoogleLogin, loading = false, error = '', language = 'en' }) 
 
             <div className="relative z-10">
               <div className="flex items-center space-x-3 mb-8">
-                <div className="p-2 bg-white/5 rounded-xl backdrop-blur-sm border border-white/10">
-                  <Shield className="h-8 w-8 text-white" />
+                <div className="p-2 bg-white/5 rounded-2xl backdrop-blur-sm border border-white/10">
+                  <img src={coatOfArms} alt="Tanzania Coat of Arms" className="h-10 w-10 object-contain" />
                 </div>
                 <span className="text-white font-bold text-xl tracking-wider">FinGuard-AI</span>
               </div>
