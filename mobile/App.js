@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { SafeAreaView, StatusBar, StyleSheet, View } from 'react-native';
+import { StatusBar, StyleSheet, View } from 'react-native';
 import { StatusBar as ExpoStatusBar } from 'expo-status-bar';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import BottomTabs from './src/components/BottomTabs';
 import OverviewScreen from './src/screens/OverviewScreen';
 import VerifyScreen from './src/screens/VerifyScreen';
@@ -43,16 +44,20 @@ export default function App() {
   }, [activeTab, checkHealth, systemStatus]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <ExpoStatusBar style="dark" />
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.background}>
-        <View style={styles.glowOne} />
-        <View style={styles.glowTwo} />
-        <View style={styles.container}>{screen}</View>
-      </View>
-      <BottomTabs activeTab={activeTab} onChange={setActiveTab} />
-    </SafeAreaView>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+        <ExpoStatusBar style="dark" />
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.background}>
+          <View style={styles.glowOne} />
+          <View style={styles.glowTwo} />
+          <View style={styles.container}>{screen}</View>
+        </View>
+      </SafeAreaView>
+      <SafeAreaView style={styles.tabSafeArea} edges={['bottom', 'left', 'right']}>
+        <BottomTabs activeTab={activeTab} onChange={setActiveTab} />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
@@ -85,5 +90,8 @@ const styles = StyleSheet.create({
   },
   container: {
     flex: 1,
+  },
+  tabSafeArea: {
+    backgroundColor: colors.surfaceMuted,
   },
 });
