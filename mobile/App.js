@@ -6,6 +6,7 @@ import OverviewScreen from './src/screens/OverviewScreen';
 import VerifyScreen from './src/screens/VerifyScreen';
 import QrScanScreen from './src/screens/QrScanScreen';
 import LegacyScreen from './src/screens/LegacyScreen';
+import AboutScreen from './src/screens/AboutScreen';
 import { API_BASE_URL, apiUrl } from './src/config/api';
 import { colors } from './src/theme/tokens';
 
@@ -30,6 +31,7 @@ export default function App() {
     if (activeTab === 'verify') return <VerifyScreen />;
     if (activeTab === 'qr') return <QrScanScreen />;
     if (activeTab === 'legacy') return <LegacyScreen />;
+    if (activeTab === 'about') return <AboutScreen />;
     return (
       <OverviewScreen
         systemStatus={systemStatus}

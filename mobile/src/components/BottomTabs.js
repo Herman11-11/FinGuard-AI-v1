@@ -5,8 +5,9 @@ import { colors, shadow, typography } from '../theme/tokens';
 const ITEMS = [
   { key: 'overview', label: 'Home' },
   { key: 'verify', label: 'Verify' },
-  { key: 'qr', label: 'Scan QR' },
+  { key: 'qr', label: 'QR' },
   { key: 'legacy', label: 'Legacy' },
+  { key: 'about', label: 'About' },
 ];
 
 export default function BottomTabs({ activeTab, onChange }) {
@@ -57,7 +58,7 @@ const styles = StyleSheet.create({
   label: {
     color: 'rgba(255,255,255,0.74)',
     fontFamily: typography.body,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   activeLabel: {

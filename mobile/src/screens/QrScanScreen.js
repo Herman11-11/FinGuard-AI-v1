@@ -35,12 +35,28 @@ export default function QrScanScreen() {
     setLookup(null);
 
     try {
-      const plotOrRecordId = extractedRecordId.replace(/^LAND-/, '');
-      const response = await api.get(`/api/documents/search/${plotOrRecordId}`);
+      const candidates = [extractedRecordId, extractedRecordId.replace(/^LAND-/, '')].filter(Boolean);
+      let response = null;
+
+      for (const candidate of candidates) {
+        try {
+          response = await api.get(`/api/documents/search/${candidate}`);
+          break;
+        } catch (candidateError) {
+          if (candidateError?.response?.status !== 404) {
+            throw candidateError;
+          }
+        }
+      }
+
+      if (!response) {
+        throw new Error('Could not find that record in the registry.');
+      }
+
       setLookup(response.data);
     } catch (lookupError) {
       console.error('QR lookup failed:', lookupError);
-      setError(lookupError?.response?.data?.detail || 'Could not find that record in the registry.');
+      setError(lookupError?.response?.data?.detail || lookupError?.message || 'Could not find that record in the registry.');
     } finally {
       setLookingUp(false);
     }
