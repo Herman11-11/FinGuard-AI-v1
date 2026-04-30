@@ -112,22 +112,26 @@ export default function VerifyScreen() {
         body: formData,
       });
 
-      const rawBody = await response.text();
+      const rawText = await response.text();
       let payload = null;
+
       try {
-        payload = rawBody ? JSON.parse(rawBody) : null;
-      } catch (parseError) {
+        payload = rawText ? JSON.parse(rawText) : null;
+      } catch {
         payload = null;
       }
 
       if (!response.ok) {
-        throw new Error(payload?.detail || `Verification failed with status ${response.status}`);
+        throw new Error(payload?.detail || rawText || `Verification failed with status ${response.status}`);
       }
 
       setVerification(payload);
     } catch (requestError) {
       console.error('Verification failed:', requestError);
-      setError(requestError?.message || 'Verification could not be completed. Check the backend connection and try again.');
+      setError(
+        requestError?.message ||
+          'Verification could not be completed. Check the backend connection and try again.'
+      );
     } finally {
       setVerifying(false);
     }

@@ -10,5 +10,5 @@ export const apiUrl = (path) => {
 
 export const api = axios.create({
   baseURL: API_BASE_URL || undefined,
-  timeout: 20000,
+  timeout: 120000,
 });

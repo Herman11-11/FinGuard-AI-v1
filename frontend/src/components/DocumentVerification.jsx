@@ -119,7 +119,7 @@ const DocumentVerification = ({ language }) => {
         videoRef.current.srcObject = stream;
       }
       setCameraOn(true);
-    } catch (err) {
+    } catch {
       setCameraError(language === 'en' ? 'Camera permission denied or not available' : 'Kamera haipatikani au ruhusa imekataliwa');
       setCameraOn(false);
     }
@@ -130,7 +130,6 @@ const DocumentVerification = ({ language }) => {
       stopCamera();
     }
     return () => stopCamera();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scanMethod]);
 
   useEffect(() => {

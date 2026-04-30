@@ -12,9 +12,6 @@ export default function OverviewScreen({ systemStatus, apiBaseUrl, onRefresh, on
         <View style={styles.heroGlowTwo} />
         <OfficialMark />
         <Text style={styles.heroTitle}>Digital trust in your hand, built for field work.</Text>
-        <Text style={styles.heroText}>
-          FinGuard Mobile will help officers verify title deeds, scan QR codes, and enroll legacy land documents without carrying the whole admin web experience into the field.
-        </Text>
       </View>
 
       <GlassCard style={styles.statusCard}>
@@ -33,41 +30,21 @@ export default function OverviewScreen({ systemStatus, apiBaseUrl, onRefresh, on
       </GlassCard>
 
       <Text style={styles.sectionTitle}>Quick actions</Text>
-      <View style={styles.stack}>
-        <ActionCard
-          title="Verify document"
-          text="Capture or upload a title deed and send it to the registry for hash, AI fingerprint, and signature checks."
-          action="Open verify"
-          onPress={() => onNavigate('verify')}
-        />
-        <ActionCard
-          title="Legacy capture"
-          text="Enroll older title deeds into the secured registry with guided metadata entry and officer review."
-          action="Open legacy"
-          onPress={() => onNavigate('legacy')}
-        />
+      <View style={styles.quickGrid}>
+        <QuickActionButton label="Verify" onPress={() => onNavigate('verify')} />
+        <QuickActionButton label="Scan QR" onPress={() => onNavigate('qr')} />
+        <QuickActionButton label="Legacy" onPress={() => onNavigate('legacy')} />
+        <QuickActionButton label="About" onPress={() => onNavigate('about')} />
       </View>
-
-      <Text style={styles.sectionTitle}>Design note</Text>
-      <GlassCard>
-        <Text style={styles.noteTitle}>Coat of arms placement</Text>
-        <Text style={styles.noteText}>
-          The circular seal currently acts as a placeholder so we can lock the layout. We should replace it with the real Tanzania coat of arms asset and keep it only in the header and welcome areas.
-        </Text>
-      </GlassCard>
     </ScrollView>
   );
 }
 
-function ActionCard({ title, text, action, onPress }) {
+function QuickActionButton({ label, onPress }) {
   return (
-    <GlassCard>
-      <Text style={styles.actionTitle}>{title}</Text>
-      <Text style={styles.actionText}>{text}</Text>
-      <Pressable style={styles.ghostButton} onPress={onPress}>
-        <Text style={styles.ghostButtonText}>{action}</Text>
-      </Pressable>
-    </GlassCard>
+    <Pressable style={styles.quickButton} onPress={onPress}>
+      <Text style={styles.quickButtonText}>{label}</Text>
+    </Pressable>
   );
 }
 
@@ -108,11 +85,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.display,
     fontWeight: '700',
     marginTop: 8,
-  },
-  heroText: {
-    color: 'rgba(253,252,248,0.8)',
-    lineHeight: 22,
-    fontSize: 15,
   },
   statusCard: {
     gap: 14,
@@ -170,43 +142,25 @@ const styles = StyleSheet.create({
     fontSize: 22,
     marginTop: 6,
   },
-  stack: {
+  quickGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 12,
   },
-  actionTitle: {
-    color: colors.ink900,
-    fontFamily: typography.display,
-    fontWeight: '700',
-    fontSize: 22,
-    marginBottom: 8,
-  },
-  actionText: {
-    color: colors.ink700,
-    lineHeight: 22,
-    marginBottom: 16,
-  },
-  ghostButton: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
+  quickButton: {
+    minWidth: '47%',
+    flexGrow: 1,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     borderWidth: 1,
     borderColor: colors.borderSoft,
-    backgroundColor: 'rgba(255,255,255,0.6)',
+    backgroundColor: 'rgba(255,255,255,0.66)',
   },
-  ghostButtonText: {
+  quickButtonText: {
     color: colors.brand900,
-    fontWeight: '700',
-  },
-  noteTitle: {
-    color: colors.ink900,
-    fontFamily: typography.display,
-    fontWeight: '700',
-    fontSize: 18,
-    marginBottom: 8,
-  },
-  noteText: {
-    color: colors.ink700,
-    lineHeight: 21,
+    fontWeight: '800',
+    fontSize: 16,
+    textAlign: 'center',
   },
 });

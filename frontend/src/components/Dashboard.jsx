@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { FileText, CheckCircle, AlertTriangle, Users, Clock } from 'lucide-react';
 import axios from '../lib/api';
 
-const Dashboard = ({ language }) => {
+const Dashboard = ({ language, userEmail }) => {
   const [stats, setStats] = useState({
     totalDocuments: 0,
     verifiedToday: 0,
@@ -38,8 +38,9 @@ const Dashboard = ({ language }) => {
   
   const translations = {
     en: {
-      welcome: 'Welcome back, Officer John',
+      welcome: 'Welcome back',
       lastLogin: 'Last login',
+      officer: 'Officer',
       totalDocs: 'Total Documents',
       verified: 'Registered Today',
       pending: 'Pending Requests',
@@ -51,11 +52,22 @@ const Dashboard = ({ language }) => {
       stats: 'System Statistics',
       fromYesterday: 'from yesterday',
       noActivity: 'No recent activity yet',
-      loading: 'Loading...'
+      loading: 'Loading...',
+      governmentBandKicker: 'Ministry of Lands',
+      governmentBandTitle: 'National Digital Land Registry',
+      governmentBandBody: 'Official recordkeeping and verification for land ownership and title deeds.',
+      apiResponse: 'API Response Time',
+      databaseLoad: 'Database Load',
+      storageUsed: 'Storage Used',
+      fasterNote: 'Faster than 95% of requests',
+      loadNote: 'Normal operating range',
+      storageUnavailable: 'Storage details unavailable',
+      available: 'available' 
     },
     sw: {
-      welcome: 'Karibu, Afisa John',
+      welcome: 'Karibu tena',
       lastLogin: 'Mara ya mwisho',
+      officer: 'Afisa',
       totalDocs: 'Jumla ya Hati',
       verified: 'Zilizosajiliwa Leo',
       pending: 'Maombi Yanayosubiri',
@@ -67,7 +79,17 @@ const Dashboard = ({ language }) => {
       stats: 'Takwimu za Mfumo',
       fromYesterday: 'kutoka jana',
       noActivity: 'Hakuna shughuli mpya',
-      loading: 'Inapakia...'
+      loading: 'Inapakia...',
+      governmentBandKicker: 'Wizara ya Ardhi',
+      governmentBandTitle: 'Daftari la Kitaifa la Ardhi la Kidijitali',
+      governmentBandBody: 'Uhifadhi rasmi wa kumbukumbu na uthibitishaji wa umiliki wa ardhi na hati za umiliki.',
+      apiResponse: 'Muda wa Majibu ya API',
+      databaseLoad: 'Mzigo wa Hifadhidata',
+      storageUsed: 'Hifadhi Iliyotumika',
+      fasterNote: 'Haraka kuliko asilimia 95 ya maombi',
+      loadNote: 'Ndani ya kiwango cha kawaida',
+      storageUnavailable: 'Maelezo ya hifadhi hayapatikani',
+      available: 'zinapatikana' 
     }
   };
 
@@ -118,19 +140,23 @@ const Dashboard = ({ language }) => {
     ? new Date(stats.lastLogin).toLocaleString()
     : new Date().toLocaleString();
 
+  const officerLabel = userEmail
+    ? `${t.officer} ${userEmail.split('@')[0]}`
+    : t.officer;
+
   return (
     <div className="space-y-6">
       {/* Premium Government Band */}
       <div className="premium-band p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-widest text-gray-500">Ministry of Lands</p>
+            <p className="text-xs uppercase tracking-widest text-gray-500">{t.governmentBandKicker}</p>
             <h3 className="text-2xl font-semibold text-gray-900 font-display mt-1">
-              National Digital Land Registry
+              {t.governmentBandTitle}
             </h3>
             <div className="gold-rule w-40 mt-3"></div>
             <p className="text-sm text-gray-600 mt-3">
-              Official recordkeeping and verification for land ownership and title deeds.
+              {t.governmentBandBody}
             </p>
           </div>
         </div>
@@ -139,7 +165,7 @@ const Dashboard = ({ language }) => {
       {/* Header */}
       <div className="flex justify-between items-start gap-4">
         <div>
-          <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.welcome}</h2>
+          <h2 className="text-3xl font-semibold text-gray-800 font-display">{t.welcome}, {officerLabel}</h2>
           <p className="text-gray-500 mt-1 flex items-center">
             <Clock className="h-4 w-4 mr-1" />
             {t.lastLogin}: {lastLoginText}
@@ -201,7 +227,7 @@ const Dashboard = ({ language }) => {
       {/* System Health from Backend */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="card p-6">
-          <h4 className="font-medium text-gray-700 mb-3">API Response Time</h4>
+          <h4 className="font-medium text-gray-700 mb-3">{t.apiResponse}</h4>
           <p className="text-3xl font-bold text-gray-800">
             {formatValue(stats.systemHealth.apiResponse)}
             {stats.systemHealth.apiResponse !== null && (
@@ -216,10 +242,10 @@ const Dashboard = ({ language }) => {
               }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-2">Faster than 95% of requests</p>
+          <p className="text-xs text-gray-500 mt-2">{t.fasterNote}</p>
         </div>
         <div className="card p-6">
-          <h4 className="font-medium text-gray-700 mb-3">Database Load</h4>
+          <h4 className="font-medium text-gray-700 mb-3">{t.databaseLoad}</h4>
           <p className="text-3xl font-bold text-gray-800">
             {formatValue(stats.systemHealth.databaseLoad)}
             {stats.systemHealth.databaseLoad !== null && (
@@ -232,10 +258,10 @@ const Dashboard = ({ language }) => {
               style={{ width: stats.systemHealth.databaseLoad ? `${stats.systemHealth.databaseLoad}%` : '0%' }}
             />
           </div>
-          <p className="text-xs text-gray-500 mt-2">Normal operating range</p>
+          <p className="text-xs text-gray-500 mt-2">{t.loadNote}</p>
         </div>
         <div className="card p-6">
-          <h4 className="font-medium text-gray-700 mb-3">Storage Used</h4>
+          <h4 className="font-medium text-gray-700 mb-3">{t.storageUsed}</h4>
           <p className="text-3xl font-bold text-gray-800">
             {formatValue(stats.systemHealth.storageUsed)}
             {stats.systemHealth.storageUsed !== null && (
@@ -255,8 +281,8 @@ const Dashboard = ({ language }) => {
           </div>
           <p className="text-xs text-gray-500 mt-2">
             {stats.systemHealth.storageTotal && stats.systemHealth.storageUsed
-              ? `${stats.systemHealth.storageTotal - stats.systemHealth.storageUsed} GB available`
-              : 'Storage details unavailable'}
+              ? `${stats.systemHealth.storageTotal - stats.systemHealth.storageUsed} GB ${t.available}`
+              : t.storageUnavailable}
           </p>
         </div>
       </div>

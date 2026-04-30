@@ -54,7 +54,8 @@ const DocumentRegistration = ({ language }) => {
       selectRegion: 'Select Region',
       required: 'Required',
       error: 'Error registering document',
-      downloadPDF: 'Download PDF'
+      downloadPDF: 'Download PDF',
+      removeUpload: 'Remove upload'
     },
     sw: {
       title: 'Sajili Hati Mpya ya Ardhi',
@@ -83,7 +84,8 @@ const DocumentRegistration = ({ language }) => {
       selectRegion: 'Chagua Mkoa',
       required: 'Inahitajika',
       error: 'Hitilafu katika usajili',
-      downloadPDF: 'Pakua PDF'
+      downloadPDF: 'Pakua PDF',
+      removeUpload: 'Ondoa faili'
     }
   };
 
@@ -125,6 +127,17 @@ const DocumentRegistration = ({ language }) => {
         setPreview(null);
       }
       setStep(2);
+    }
+  };
+
+
+  const clearSelectedFile = () => {
+    setFile(null);
+    setPreview(null);
+    setError(null);
+    if (pdfPreviewUrlRef.current) {
+      URL.revokeObjectURL(pdfPreviewUrlRef.current);
+      pdfPreviewUrlRef.current = null;
     }
   };
 
@@ -385,7 +398,16 @@ const DocumentRegistration = ({ language }) => {
                     className="mx-auto h-72 w-full max-w-md rounded-lg border border-gray-200"
                   />
                 )}
-                <p className="text-sm text-gray-600">{file?.name}</p>
+                <div className="flex flex-col items-center gap-3">
+                  <p className="text-sm text-gray-600">{file?.name}</p>
+                  <button
+                    type="button"
+                    onClick={clearSelectedFile}
+                    className="rounded-xl border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
+                  >
+                    {t.removeUpload}
+                  </button>
+                </div>
               </div>
             ) : (
               <label htmlFor="file-upload" className="cursor-pointer block">

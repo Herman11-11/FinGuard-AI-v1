@@ -24,6 +24,9 @@ from services.ai_fingerprint_service import AIFingerprintService
 
 router = APIRouter()
 
+AI_IDENTITY_THRESHOLD = float(os.getenv("FINGUARD_AI_IDENTITY_THRESHOLD", "0.985"))
+AI_IDENTITY_MARGIN = float(os.getenv("FINGUARD_AI_IDENTITY_MARGIN", "0.02"))
+
 
 def log_verification_event(
     db: Session,
@@ -84,6 +87,81 @@ def pdf_signature_matches_document(doc: Document | None, pdf_signature: dict | N
     return isinstance(stored_pdf, dict) and stored_pdf.get("signature") == pdf_signature.get("signature")
 
 
+def is_strong_ai_identity_match(ai_verification: dict | None) -> bool:
+    if not ai_verification or not ai_verification.get("available"):
+        return False
+    similarity = ai_verification.get("similarity")
+    return isinstance(similarity, (int, float)) and similarity >= AI_IDENTITY_THRESHOLD
+
+
+def stego_matches_document(stego_data: dict | None, doc: Document | None) -> bool:
+    if not stego_data or not doc:
+        return False
+
+    stego_record_id = stego_data.get("record_id")
+    stego_fingerprint = stego_data.get("full_document_hash") or stego_data.get("fingerprint")
+    stego_file_hash = stego_data.get("file_hash")
+
+    if stego_record_id != doc.record_id:
+        return False
+
+    if stego_fingerprint and stego_fingerprint != doc.document_hash:
+        return False
+
+    if stego_file_hash and stego_file_hash != doc.file_hash:
+        return False
+
+    return bool(stego_fingerprint or stego_file_hash)
+
+
+def find_document_by_ai_fingerprint(
+    db: Session,
+    ai_candidate: dict | None,
+) -> tuple[Document | None, dict | None]:
+    if not ai_candidate:
+        return None, None
+
+    best_doc = None
+    best_verification = None
+    best_similarity = -1.0
+    second_best_similarity = -1.0
+
+    for candidate_doc in db.query(Document).all():
+        metadata = candidate_doc.metadata_json if isinstance(candidate_doc.metadata_json, dict) else {}
+        stored_ai = metadata.get("ai_fingerprint") if isinstance(metadata, dict) else None
+        if not isinstance(stored_ai, dict):
+            continue
+
+        verification = AIFingerprintService.compare_fingerprints(stored_ai, ai_candidate)
+        similarity = verification.get("similarity")
+        if verification.get("available") and isinstance(similarity, (int, float)) and similarity > best_similarity:
+            second_best_similarity = best_similarity
+            best_doc = candidate_doc
+            best_verification = verification
+            best_similarity = similarity
+        elif verification.get("available") and isinstance(similarity, (int, float)) and similarity > second_best_similarity:
+            second_best_similarity = similarity
+
+    if best_verification:
+        best_verification["identity_threshold"] = AI_IDENTITY_THRESHOLD
+        best_verification["identity_margin"] = AI_IDENTITY_MARGIN
+        best_verification["second_best_similarity"] = (
+            second_best_similarity if second_best_similarity >= 0 else None
+        )
+        best_verification["identity_match"] = (
+            is_strong_ai_identity_match(best_verification)
+            and (
+                second_best_similarity < 0
+                or best_similarity - second_best_similarity >= AI_IDENTITY_MARGIN
+            )
+        )
+
+    if best_verification and best_verification.get("identity_match"):
+        return best_doc, best_verification
+
+    return None, best_verification
+
+
 def build_failed_verification_reason(
     *,
     content_type: str | None,
@@ -116,6 +194,7 @@ async def register_document(
     area: str = Form(...),
     region: str = Form(...),
     district: Optional[str] = Form(None),
+    x_finguard_compact: Optional[str] = Header(None),
     db: Session = Depends(get_db)
 ):
     try:
@@ -170,9 +249,12 @@ async def register_document(
             fingerprint=ultimate_fingerprint
         )
 
-        # Generate QR codes
-        qr_code = QRService.generate_document_qr(doc_data, ultimate_fingerprint)
+        compact_response = str(x_finguard_compact or '').lower() in {'1', 'true', 'yes'}
+
+        qr_code = None
         mini_qr = QRService.generate_mini_qr(f"LAND-{record_id}")
+        if not compact_response:
+            qr_code = QRService.generate_document_qr(doc_data, ultimate_fingerprint)
 
         # ===========================================
         # STEGANOGRAPHY - HIDE FINGERPRINT IN IMAGE
@@ -225,6 +307,7 @@ async def register_document(
             "ai_embedding_dim": ai_fingerprint.get("embedding_dim") if ai_fingerprint else None,
             "qr_code": qr_code,
             "mini_qr": mini_qr,
+            "verification_url": QRService.generate_verification_url(f"LAND-{record_id}"),
             "stego_available": stego_available,
             "ai_fingerprint_available": ai_fingerprint is not None,
             "filename": file.filename,
@@ -286,6 +369,8 @@ async def verify_document(
             "similarity": None,
             "reason": "not evaluated",
         }
+        ai_input = None
+        ai_candidate = None
 
         # First check by file hash
         doc = DocumentCRUD.get_document_by_file_hash(db, file_hash)
@@ -308,6 +393,19 @@ async def verify_document(
         except Exception as e:
             print(f"PDF signature generation failed: {e}")
 
+        try:
+            ai_input = build_ai_input(content, file.content_type)
+            if ai_input is not None:
+                ai_candidate = AIFingerprintService.generate_fingerprint(ai_input)
+                if not doc:
+                    ai_doc, ai_lookup = find_document_by_ai_fingerprint(db, ai_candidate)
+                    if ai_lookup:
+                        ai_verification = ai_lookup
+                    if ai_doc:
+                        doc = ai_doc
+        except Exception as e:
+            print(f"AI fingerprint lookup failed: {e}")
+
         if not doc:
             failure_reason = build_failed_verification_reason(
                 content_type=file.content_type,
@@ -329,7 +427,9 @@ async def verify_document(
                 "pdf_signature": pdf_signature,
                 "details": {
                     "hash_match": False,
+                    "pdf_signature_match": False,
                     "tamper_detected": True,
+                    "verification_basis": "none",
                     "issue_date": None,
                     "owner": stego_data.get("owner") if stego_data else None,
                     "plot": stego_data.get("plot") if stego_data else None,
@@ -340,15 +440,8 @@ async def verify_document(
                 }
             }
 
-        ai_input = None
-        try:
-            ai_input = build_ai_input(content, file.content_type)
-        except Exception as e:
-            print(f"AI fingerprint input preparation failed: {e}")
-
-        if ai_input is not None and isinstance(doc.metadata_json, dict) and doc.metadata_json.get("ai_fingerprint"):
+        if ai_candidate is not None and isinstance(doc.metadata_json, dict) and doc.metadata_json.get("ai_fingerprint"):
             try:
-                ai_candidate = AIFingerprintService.generate_fingerprint(ai_input)
                 ai_verification = AIFingerprintService.compare_fingerprints(
                     doc.metadata_json.get("ai_fingerprint"),
                     ai_candidate,
@@ -359,32 +452,36 @@ async def verify_document(
         hash_match = doc.file_hash == file_hash
         pdf_match = pdf_signature_matches_document(doc, pdf_signature)
         ai_match = ai_verification.get("match", False)
+        ai_identity_match = is_strong_ai_identity_match(ai_verification)
+        stego_match = stego_matches_document(stego_data, doc)
         if hash_match:
             confidence = 0.98
         elif pdf_match:
             confidence = 0.94
-        elif stego_data:
-            confidence = 0.9 if ai_match else 0.82
+        elif stego_match:
+            confidence = 0.9 if ai_identity_match else 0.82
         else:
-            confidence = 0.76 if ai_match else 0.58
+            confidence = 0.91 if ai_identity_match else 0.38
 
         return {
-            "is_authentic": bool(hash_match or pdf_match or stego_data),
+            "is_authentic": bool(hash_match or pdf_match or stego_match or ai_identity_match),
             "confidence": confidence,
             "has_steganography": stego_data is not None,
+            "steganography_match": stego_match,
             "stego_data": stego_data,
             "ai_verification": ai_verification,
             "pdf_signature": pdf_signature,
             "details": {
                 "hash_match": hash_match,
                 "pdf_signature_match": pdf_match,
-                "tamper_detected": not hash_match and not pdf_match and not stego_data and not ai_match,
+                "steganography_match": stego_match,
+                "tamper_detected": not hash_match and not pdf_match and not stego_match and not ai_identity_match,
                 "verification_basis": (
                     "hash"
                     if hash_match else "pdf_signature"
-                    if pdf_match else "steganography"
-                    if stego_data else "ai_support"
-                    if ai_match else "none"
+                    if pdf_match else "validated_steganography"
+                    if stego_match else "ai_support"
+                    if ai_identity_match else "none"
                 ),
                 "issue_date": doc.created_at.date().isoformat() if doc.created_at else None,
                 "owner": doc.owner_name,
@@ -498,6 +595,9 @@ async def admin_delete_document(
     if not deleted:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    removed_logs = db.query(AccessLog).filter(AccessLog.document_id == record_id).delete()
+    db.commit()
+
     stego_suffix = record_id.replace("LAND-", "", 1)
     stego_filename = f"stego_{stego_suffix}.png"
     stego_path = os.path.join("stego_images", stego_filename)
@@ -507,8 +607,22 @@ async def admin_delete_document(
         except OSError as exc:
             print(f"⚠️ Failed to remove stego image {stego_path}: {exc}")
 
-    return {"success": True, "record_id": record_id}
+    return {"success": True, "record_id": record_id, "removed_logs": removed_logs}
 
+
+
+@router.delete("/api/admin/audit-logs/{log_id}")
+async def admin_delete_audit_log(
+    log_id: int,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db)
+):
+    require_firebase_admin(authorization)
+    deleted = db.query(AccessLog).filter(AccessLog.id == log_id).delete()
+    db.commit()
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Audit log not found")
+    return {"success": True, "log_id": log_id}
 
 @router.get("/api/admin/audit-logs")
 async def admin_view_audit_logs(

@@ -104,7 +104,10 @@ export default function LegacyScreen() {
       });
 
       const response = await api.post('/api/documents/register', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+          'X-Finguard-Compact': '1',
+        },
       });
 
       setResult(response.data);
@@ -112,6 +115,7 @@ export default function LegacyScreen() {
       console.error('Legacy submission failed:', submitError);
       setError(
         submitError?.response?.data?.detail ||
+          submitError?.message ||
           'Legacy capture could not be submitted. Check the backend connection and try again.'
       );
     } finally {
@@ -197,6 +201,15 @@ export default function LegacyScreen() {
             <Text style={styles.resultMeta}>Fingerprint: {result.fingerprint ? `${result.fingerprint.slice(0, 18)}...` : 'Generated'}</Text>
             <Text style={styles.resultMeta}>AI signature: {result.ai_signature ? `${result.ai_signature.slice(0, 18)}...` : 'Not available'}</Text>
             <Text style={styles.resultMeta}>{result.message || 'Legacy deed registered successfully.'}</Text>
+            {result.mini_qr ? (
+              <View style={styles.qrWrap}>
+                <Image
+                  source={{ uri: `data:image/png;base64,${result.mini_qr}` }}
+                  style={styles.qrImage}
+                />
+                <Text style={styles.qrText}>Use this QR for future field verification.</Text>
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.placeholderCard}>
@@ -431,5 +444,23 @@ const styles = StyleSheet.create({
   resultMeta: {
     color: colors.ink700,
     lineHeight: 20,
+  },
+  qrWrap: {
+    marginTop: 12,
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: 14,
+  },
+  qrImage: {
+    width: 160,
+    height: 160,
+    resizeMode: 'contain',
+  },
+  qrText: {
+    color: colors.ink700,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

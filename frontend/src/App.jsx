@@ -30,6 +30,11 @@ const AppShell = () => {
       auth: '3-Person Auth',
       admin: 'Admin DB',
       logout: 'Logout',
+      lightMode: 'Light Mode',
+      darkMode: 'Dark Mode',
+      systemOnline: 'System Online',
+      systemOffline: 'System Offline',
+      checking: 'Checking',
       ministry: 'Ministry of Lands - Tanzania',
       subtitle: 'Digital Trust Framework'
     },
@@ -40,6 +45,11 @@ const AppShell = () => {
       auth: 'Uthibitisho wa Watu 3',
       admin: 'Hifadhidata',
       logout: 'Toka',
+      lightMode: 'Mwanga',
+      darkMode: 'Giza',
+      systemOnline: 'Mfumo Upo Tayari',
+      systemOffline: 'Mfumo Haufanyi Kazi',
+      checking: 'Inakaguliwa',
       ministry: 'Wizara ya Ardhi - Tanzania',
       subtitle: 'Mfumo wa Uaminifu Dijitali'
     }
@@ -110,7 +120,7 @@ const AppShell = () => {
         const response = await fetch(apiUrl('/api/health'));
         if (!mounted) return;
         setSystemStatus(response.ok ? 'online' : 'offline');
-      } catch (err) {
+      } catch {
         if (!mounted) return;
         setSystemStatus('offline');
       }
@@ -214,9 +224,9 @@ const AppShell = () => {
     ].join(' ');
 
   return (
-    <div className="min-h-screen app-shell flex">
+    <div className="h-screen overflow-hidden app-shell flex">
       {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} sidebar text-white transition-all duration-300 shadow-2xl border-r border-green-900/40 flex flex-col`}>
+      <aside className={`${sidebarOpen ? 'w-64' : 'w-20'} h-screen sidebar text-white transition-all duration-300 shadow-2xl border-r border-green-900/40 flex flex-col shrink-0`}>
         <div className="p-5 flex items-center justify-between border-b border-green-700/60">
           <div className="flex items-center space-x-2">
             <img src={coatOfArms} alt="Tanzania Coat of Arms" className="h-9 w-9 object-contain" />
@@ -257,10 +267,10 @@ const AppShell = () => {
           <button
             onClick={toggleTheme}
             className="flex items-center space-x-3 hover:text-green-100 transition w-full mb-4"
-            title="Toggle theme"
+            title={darkMode ? t.lightMode : t.darkMode}
           >
             {darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            {sidebarOpen && <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>}
+            {sidebarOpen && <span>{darkMode ? t.lightMode : t.darkMode}</span>}
           </button>
           <button onClick={handleGlobalLogout} className="flex items-center space-x-3 hover:text-green-100 transition w-full">
             <LogOut className="h-5 w-5" />
@@ -270,8 +280,8 @@ const AppShell = () => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto night-vision">
-        <header className="bg-white/90 backdrop-blur border-b border-gray-200/70 official-watermark">
+      <div className="flex-1 min-w-0 overflow-hidden night-vision flex flex-col">
+        <header className="shrink-0 bg-white/90 backdrop-blur border-b border-gray-200/70 official-watermark">
           <div className="px-6 py-5 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-semibold text-gray-900 tracking-tight font-display">{t.ministry}</h1>
@@ -295,19 +305,19 @@ const AppShell = () => {
                       ? 'bg-red-500'
                       : 'bg-gray-400'
                 }`} />
-                {systemStatus === 'online' ? 'System Online' : systemStatus === 'offline' ? 'System Offline' : 'Checking'}
+                {systemStatus === 'online' ? t.systemOnline : systemStatus === 'offline' ? t.systemOffline : t.checking}
               </div>
             </div>
           </div>
         </header>
 
-        <main className="p-6 lg:p-8">
+        <main className="flex-1 overflow-auto p-6 lg:p-8">
           <Routes>
-            <Route path="/" element={<Dashboard language={language} />} />
+            <Route path="/" element={<Dashboard language={language} userEmail={user?.email} />} />
             <Route path="/register" element={<DocumentRegistration language={language} />} />
             <Route path="/verify" element={<DocumentVerification language={language} />} />
             <Route path="/auth" element={<Navigate to="/admin" replace />} />
-            <Route path="/admin" element={<AdminDocuments />} />
+            <Route path="/admin" element={<AdminDocuments language={language} />} />
           </Routes>
         </main>
       </div>

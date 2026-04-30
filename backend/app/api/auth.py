@@ -119,6 +119,90 @@ async def approve_access(payload: dict, db: Session = Depends(get_db)):
     return response
 
 
+@router.post("/api/auth/change-officer-password")
+async def change_officer_password(payload: dict, db: Session = Depends(get_db)):
+    officer_id = payload.get("officer_id")
+    current_password = payload.get("current_password")
+    new_password = payload.get("new_password")
+
+    if not officer_id or not current_password or not new_password:
+        raise HTTPException(status_code=400, detail="officer_id, current_password, and new_password are required")
+
+    try:
+        officer_id = int(officer_id)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="Invalid officer_id")
+
+    if len(new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    officer = db.query(Officer).filter(Officer.id == officer_id, Officer.is_active == True).first()
+    if not officer:
+        raise HTTPException(status_code=404, detail="Officer not found")
+
+    if officer.password_hash and officer.password_hash != _hash_password(current_password):
+        raise HTTPException(status_code=401, detail="Current password is incorrect")
+
+    officer.password_hash = _hash_password(new_password)
+    db.commit()
+
+    return {
+        "message": "Officer password updated successfully",
+        "officer": {
+            "id": officer.id,
+            "name": officer.name,
+            "role": officer.role
+        }
+    }
+
+
+@router.patch("/api/auth/officers/{officer_id}")
+async def update_officer(
+    officer_id: int,
+    payload: dict,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db),
+):
+    require_firebase_admin(authorization)
+
+    officer = db.query(Officer).filter(Officer.id == officer_id, Officer.is_active == True).first()
+    if not officer:
+        raise HTTPException(status_code=404, detail="Officer not found")
+
+    name = payload.get("name")
+    role = payload.get("role")
+    new_password = payload.get("new_password")
+
+    if name is not None:
+        name = str(name).strip()
+        if not name:
+            raise HTTPException(status_code=400, detail="Officer name cannot be empty")
+        officer.name = name
+
+    if role is not None:
+        role = str(role).strip()
+        if not role:
+            raise HTTPException(status_code=400, detail="Officer role cannot be empty")
+        officer.role = role
+
+    if new_password is not None:
+        if len(new_password) < 6:
+            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        officer.password_hash = _hash_password(new_password)
+
+    db.commit()
+    db.refresh(officer)
+
+    return {
+        "message": "Officer details updated successfully",
+        "officer": {
+            "id": officer.id,
+            "name": officer.name,
+            "role": officer.role
+        }
+    }
+
+
 def _get_current_user(authorization: str | None, db: Session) -> User:
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Missing token")

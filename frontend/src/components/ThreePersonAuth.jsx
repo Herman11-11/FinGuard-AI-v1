@@ -75,7 +75,7 @@ const ThreePersonAuth = ({ language }) => {
         const response = await axios.get('/api/auth/officers');
         const apiOfficers = Array.isArray(response.data) ? response.data : [];
         setOfficers(apiOfficers.map((o) => ({ ...o, approved: false, password: '' })));
-      } catch (err) {
+      } catch {
         setOfficers([]);
       }
     };

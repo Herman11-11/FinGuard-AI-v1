@@ -54,7 +54,8 @@ def init_firebase():
 
 def verify_id_token(id_token: str) -> dict:
     init_firebase()
-    return auth.verify_id_token(id_token)
+    # Allow a small amount of clock drift for local development and freshly-issued tokens.
+    return auth.verify_id_token(id_token, clock_skew_seconds=10)
 
 
 def set_admin_claim(email: str, is_admin: bool = True):
